@@ -100,7 +100,7 @@ export default function Home() {
                 </span>
                 für die Community
               </h1>
-              <p className="text-xl text-slate-300 leading-relaxed">
+              <p className="text-xl text-gray-100 leading-relaxed">
                 Wir erstellen kostenlose Webseiten für Unternehmen und Privatpersonen. 
                 Als Teil der EHE Community bieten wir professionelle Webentwicklung ohne Kosten.
               </p>
