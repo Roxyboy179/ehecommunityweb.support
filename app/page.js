@@ -21,7 +21,7 @@ export default function Home() {
     {
       icon: <Code className="w-8 h-8" />,
       title: 'Webseiten Entwicklung',
-      description: 'Professionelle und moderne Webseiten für Unternehmen und Privatpersonen'
+      description: 'Professionelle und moderne Webseiten für unsere EHE Community-Projekte'
     },
     {
       icon: <Palette className="w-8 h-8" />,
