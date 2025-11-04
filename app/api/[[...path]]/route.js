@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendProjectRequestConfirmation, sendStatusUpdateEmail } from '@/lib/email'
+import { sendProjectRequestConfirmation, sendStatusUpdateEmail, sendContactFormConfirmation, sendContactFormNotification } from '@/lib/email'
 
 // MongoDB connection
 let client
@@ -89,6 +89,49 @@ async function handleRoute(request, { params }) {
       const cleanedStatusChecks = statusChecks.map(({ _id, ...rest }) => rest)
       
       return handleCORS(NextResponse.json(cleanedStatusChecks))
+    }
+
+    // ==================== CONTACT FORM ENDPOINTS ====================
+
+    // Submit contact form - POST /api/contact
+    if (route === '/contact' && method === 'POST') {
+      const body = await request.json()
+      
+      if (!body.name || !body.email || !body.subject || !body.message) {
+        return handleCORS(NextResponse.json(
+          { error: "Alle Felder sind erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      const contactObj = {
+        id: uuidv4(),
+        name: body.name,
+        email: body.email,
+        subject: body.subject,
+        message: body.message,
+        timestamp: new Date(),
+        status: 'new'
+      }
+
+      await db.collection('contact_messages').insertOne(contactObj)
+
+      // Send email notifications using email library
+      try {
+        // 1. Send notification to admin
+        await sendContactFormNotification(body.name, body.email, body.subject, body.message)
+        
+        // 2. Send confirmation to sender
+        await sendContactFormConfirmation(body.email, body.name, body.subject, body.message)
+      } catch (emailError) {
+        console.error('Email send error:', emailError)
+        // Don't fail the request if email fails
+      }
+
+      return handleCORS(NextResponse.json({ 
+        success: true,
+        message: "Ihre Nachricht wurde erfolgreich gesendet" 
+      }))
     }
 
     // ==================== PROJECT REQUESTS ENDPOINTS ====================
