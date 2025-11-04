@@ -134,10 +134,16 @@ code {
 @layer base {
   * {
     @apply border-border;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
+  
+  /* Smooth Scroll Behavior - Verbessert */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
   
   /* Performance Optimierungen */
   * {
@@ -145,19 +151,90 @@ code {
     -moz-osx-font-smoothing: grayscale;
   }
   
-  /* Scroll-Behavior */
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* GPU Beschleunigung für Animationen */
-  button, a, [class*="hover:"] {
+  /* GPU Beschleunigung für bessere Performance */
+  img, video, iframe {
     transform: translateZ(0);
-    will-change: transform;
+    backface-visibility: hidden;
   }
   
-  /* Flüssige Transitions */
-  * {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Flüssigere Transitions für alle interaktiven Elemente */
+  a, button, [role="button"], [class*="hover:"] {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateZ(0);
   }
+  
+  /* Sanftere Opacity Transitions */
+  [class*="opacity-"], [class*="hover:opacity-"] {
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Sanftere Transform Transitions */
+  [class*="scale-"], [class*="hover:scale-"], [class*="translate-"] {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Simplified Scroll-triggered Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0.3;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Simplified Animation Utilities - All elements visible by default */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Subtle slide animations - removed aggressive transforms */
+.animate-slide-in-left {
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Stagger Animation Delays - Reduced for better performance */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* REMOVED will-animate to prevent hidden elements */
+
+/* Loading Skeleton Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 1000px 100%;
 }
