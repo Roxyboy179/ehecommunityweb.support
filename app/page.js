@@ -188,7 +188,7 @@ export default function Home() {
             <h2 className="text-4xl lg:text-5xl font-bold mb-4">
               Unsere <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Projekte</span>
             </h2>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-100 max-w-2xl mx-auto">
               Beispiele unserer Arbeit für die Community
             </p>
           </div>
