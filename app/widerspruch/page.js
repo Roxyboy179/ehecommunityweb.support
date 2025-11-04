@@ -62,12 +62,31 @@ export default function Widerspruch() {
               <h2 className="text-2xl font-bold mb-4 text-white">Widerspruch einlegen</h2>
               <p className="mb-4 text-white">
                 Wenn Sie der Meinung sind, dass Ihr Account zu Unrecht gesperrt wurde, können Sie 
-                Widerspruch einlegen:
+                über unser Online-Formular Widerspruch einlegen:
               </p>
 
+              <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/40 p-8 mb-6 shadow-xl shadow-green-500/20">
+                <h3 className="text-2xl font-bold mb-4 text-green-400">Online Widerspruchsformular</h3>
+                <p className="mb-6 text-white text-lg">
+                  Nutzen Sie unser spezielles Formular für einen schnellen und strukturierten Widerspruchsprozess:
+                </p>
+                <a 
+                  href="https://botforge-orcin.de/widerspruch"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-green-500/30 hover:scale-105 transition-all duration-300"
+                >
+                  <ArrowLeft className="rotate-180 w-5 h-5" />
+                  Zum Widerspruchsformular
+                </a>
+                <p className="text-sm text-green-200 mt-4">
+                  Das Formular führt Sie Schritt für Schritt durch den Widerspruchsprozess.
+                </p>
+              </Card>
+
               <Card className="bg-slate-800/50 border-green-500/30 p-6 mb-6">
-                <h3 className="text-xl font-bold mb-4 text-green-400">Widerspruch per E-Mail</h3>
-                <p className="mb-4 text-white">Senden Sie eine E-Mail an:</p>
+                <h3 className="text-xl font-bold mb-4 text-green-400">Alternative: Widerspruch per E-Mail</h3>
+                <p className="mb-4 text-white">Alternativ können Sie auch eine E-Mail senden an:</p>
                 <a 
                   href="mailto:hamburgrp20@gmail.com?subject=Widerspruch gegen Account-Sperrung"
                   className="text-green-300 hover:text-green-200 text-lg font-bold"
@@ -169,16 +188,30 @@ export default function Widerspruch() {
               </p>
             </section>
 
-            <section className="text-center">
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold shadow-lg shadow-green-500/30"
-                asChild
+            <section className="text-center space-y-4">
+              <a 
+                href="https://botforge-orcin.de/widerspruch"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <a href="mailto:hamburgrp20@gmail.com?subject=Widerspruch gegen Account-Sperrung">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold shadow-lg shadow-green-500/30 text-lg px-8"
+                >
+                  <ArrowLeft className="rotate-180 w-5 h-5 mr-2" />
+                  Widerspruch online einlegen
+                </Button>
+              </a>
+              <p className="text-gray-300 text-sm">oder</p>
+              <a href="mailto:hamburgrp20@gmail.com?subject=Widerspruch gegen Account-Sperrung">
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-2 border-green-400 hover:bg-green-500/20 text-white font-semibold hover:border-green-300"
+                >
                   Widerspruch per E-Mail einlegen
-                </a>
-              </Button>
+                </Button>
+              </a>
             </section>
           </div>
         </Card>
