@@ -8,11 +8,14 @@ import { Card } from '@/components/ui/card'
 import { Code, Palette, Users, Zap, CheckCircle, ArrowRight, Mail, Globe, Heart, LogIn, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useScrollAnimation } from '@/hooks/useScrollAnimation'
+import { useCookies } from '@/contexts/CookieContext'
+import ContactForm from '@/components/ContactForm'
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false)
   const [imageLoaded, setImageLoaded] = useState({})
   const { user, isOwner, signOut } = useAuth()
+  const { setShowBanner } = useCookies()
   const router = useRouter()
   
   // Scroll animation refs
@@ -383,47 +386,55 @@ export default function Home() {
               </p>
             </div>
 
-            <Card className={`bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8 lg:p-12 transition-all duration-700 hover:shadow-2xl hover:shadow-blue-500/20 ${
-              contactVisible ? 'animate-fade-in-up stagger-2' : ''
-            }`}>
-              <div className="space-y-6">
-                <div className="flex items-start space-x-4">
-                  <Mail className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-xl font-bold mb-2 text-white">E-Mail Kontakt</h3>
-                    <a 
-                      href="mailto:hamburgrp20@gmail.com"
-                      className="text-blue-300 hover:text-blue-200 transition-colors text-lg font-semibold"
-                    >
-                      hamburgrp20@gmail.com
-                    </a>
-                    <p className="text-gray-200 mt-2">Antwortzeit: In der Regel innerhalb von 48 Stunden</p>
-                  </div>
-                </div>
-
-                <div className="border-t border-blue-500/20 pt-6">
-                  <h3 className="text-xl font-bold mb-4 text-white">Was können Sie anfragen?</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-white">Neue Webseiten-Projekte</span>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-white">Technischer Support</span>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-white">Allgemeine Fragen</span>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-white">Rechtliche Anfragen</span>
-                    </div>
-                  </div>
-                </div>
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Contact Form */}
+              <div className={contactVisible ? 'animate-fade-in-up stagger-2' : ''}>
+                <ContactForm />
               </div>
-            </Card>
+
+              {/* Contact Info */}
+              <div className={contactVisible ? 'animate-fade-in-up stagger-3' : ''}>
+                <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-6 lg:p-8 h-full transition-all duration-700 hover:shadow-2xl hover:shadow-blue-500/20">
+                  <div className="space-y-6">
+                    <div className="flex items-start space-x-4">
+                      <Mail className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
+                      <div>
+                        <h3 className="text-xl font-bold mb-2 text-white">Direkt per E-Mail</h3>
+                        <a 
+                          href="mailto:hamburgrp20@gmail.com"
+                          className="text-blue-300 hover:text-blue-200 transition-colors text-lg font-semibold"
+                        >
+                          hamburgrp20@gmail.com
+                        </a>
+                        <p className="text-gray-200 mt-2 text-sm">Antwortzeit: In der Regel innerhalb von 48 Stunden</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-blue-500/20 pt-6">
+                      <h3 className="text-xl font-bold mb-4 text-white">Was können Sie anfragen?</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-start space-x-3">
+                          <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-white">Neue Webseiten-Projekte</span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-white">Technischer Support</span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-white">Allgemeine Fragen</span>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                          <span className="text-white">Rechtliche Anfragen</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -457,6 +468,17 @@ export default function Home() {
                 <li><Link href="/datenschutz" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Datenschutz</Link></li>
                 <li><Link href="/nutzungsbedingungen" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Nutzungsbedingungen</Link></li>
                 <li><Link href="/widerspruch" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Widerspruch</Link></li>
+                <li>
+                  <button 
+                    onClick={() => {
+                      localStorage.removeItem('cookieConsent')
+                      setShowBanner(true)
+                    }}
+                    className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300 text-left"
+                  >
+                    Cookie-Einstellungen
+                  </button>
+                </li>
               </ul>
             </div>
           </div>
