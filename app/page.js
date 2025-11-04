@@ -115,7 +115,7 @@ export default function Home() {
                   <a href="#contact" className="text-white">Projekt Anfragen</a>
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="border-2 border-blue-400 hover:bg-blue-500/20 text-white font-semibold hover:border-blue-300">
+                <Button size="lg" variant="outline" className="border-2 border-blue-400 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold hover:border-blue-300">
                   <a href="#portfolio" className="text-white">Portfolio Ansehen</a>
                 </Button>
               </div>
