@@ -243,7 +243,7 @@ export default function Home() {
                 <h2 className="text-4xl lg:text-5xl font-bold mb-6">
                   Über <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">EHE Community</span>
                 </h2>
-                <div className="space-y-4 text-slate-300 leading-relaxed">
+                <div className="space-y-4 text-gray-100 leading-relaxed">
                   <p>
                     EHE Community Webseite Studio ist eine kostenlose Plattform, die professionelle 
                     Webseiten für Unternehmen und Privatpersonen erstellt.
