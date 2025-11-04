@@ -55,6 +55,12 @@ export default function Home() {
       description: 'Discord Bot Builder mit visuellem Command Builder',
       link: 'https://botforge-orcin.de',
       image: 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwxfHx3ZWIlMjBkZXZlbG9wbWVudHxlbnwwfHx8Ymx1ZXwxNzYyMjQyNTQxfDA&ixlib=rb-4.1.0&q=85'
+    },
+    {
+      name: 'EHE Community Dashboard',
+      description: 'Offizielle Dashboard-Anwendung für die EHE Community',
+      link: 'https://ehecommunitydashboard.vercel.app',
+      image: 'https://images.pexels.com/photos/8728559/pexels-photo-8728559.jpeg'
     }
   ]
 
