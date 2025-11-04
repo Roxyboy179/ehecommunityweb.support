@@ -251,17 +251,17 @@ export default function Home() {
                 </h2>
                 <div className="space-y-4 text-gray-100 leading-relaxed">
                   <p>
-                    EHE Community Webseite Studio ist eine kostenlose Plattform, die professionelle 
-                    Webseiten für Unternehmen und Privatpersonen erstellt.
+                    EHE Community Webseite Studio ist eine kostenlose Plattform, die ausschließlich 
+                    Webseiten für unsere eigene Community erstellt. Keine kommerziellen Aufträge!
                   </p>
                   <p>
                     Wir sind eine engagierte Community von Entwicklern und Designern, die ihre 
-                    Fähigkeiten einsetzen, um hochwertige Webprojekte zu realisieren - ohne Kosten 
-                    für unsere Community-Mitglieder.
+                    Fähigkeiten einsetzen, um hochwertige Community-Projekte wie BotForge und das 
+                    EHE Dashboard zu realisieren.
                   </p>
                   <p>
-                    Unser Ziel ist es, moderne Webtechnologien für alle zugänglich zu machen und 
-                    gemeinsam großartige digitale Erlebnisse zu schaffen.
+                    Unser Ziel ist es, moderne Webtechnologien für unsere Community zugänglich zu machen 
+                    und gemeinsam großartige digitale Erlebnisse zu schaffen.
                   </p>
                 </div>
                 <div className="mt-8 flex items-center space-x-4">
