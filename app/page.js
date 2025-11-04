@@ -1,17 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Code, Palette, Users, Zap, CheckCircle, ArrowRight, Mail, Globe, Heart, LogIn, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState({})
   const { user, isOwner, signOut } = useAuth()
   const router = useRouter()
+  
+  // Scroll animation refs
+  const [heroRef, heroVisible] = useScrollAnimation({ threshold: 0.2 })
+  const [servicesRef, servicesVisible] = useScrollAnimation({ threshold: 0.15 })
+  const [portfolioRef, portfolioVisible] = useScrollAnimation({ threshold: 0.15 })
+  const [aboutRef, aboutVisible] = useScrollAnimation({ threshold: 0.15 })
+  const [contactRef, contactVisible] = useScrollAnimation({ threshold: 0.15 })
 
   useEffect(() => {
     let ticking = false
@@ -129,11 +138,11 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section ref={heroRef} className="relative pt-32 pb-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent" />
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
+            <div className={`space-y-8 ${heroVisible ? 'animate-fade-in-up' : ''}`}>
               <div className="inline-block">
                 <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-semibold backdrop-blur-sm">
                   Kostenlose Community Plattform
@@ -176,14 +185,15 @@ export default function Home() {
                 </a>
               </div>
             </div>
-            <div className="relative">
+            <div className={`relative ${heroVisible ? 'animate-fade-in stagger-2' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-3xl" />
-              <Card className="relative bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden">
+              <Card className="relative bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/30">
                 <img 
                   src="https://images.unsplash.com/photo-1610989001873-03968eed0f08?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwyfHx3ZWIlMjBkZXZlbG9wbWVudHxlbnwwfHx8Ymx1ZXwxNzYyMjQyNTQxfDA&ixlib=rb-4.1.0&q=85"
                   alt="Web Development"
-                  className="w-full h-auto rounded-lg transition-transform duration-700"
+                  className="w-full h-auto rounded-lg transition-all duration-700 hover:scale-105"
                   loading="eager"
+                  onLoad={() => setImageLoaded(prev => ({ ...prev, hero: true }))}
                 />
               </Card>
             </div>
@@ -192,9 +202,9 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-20 relative">
+      <section ref={servicesRef} id="services" className="py-20 relative">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div className={`text-center mb-16 ${servicesVisible ? 'animate-fade-in-up' : ''}`}>
             <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-white">
               Was wir <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">bieten</span>
             </h2>
@@ -207,10 +217,12 @@ export default function Home() {
             {services.map((service, index) => (
               <Card 
                 key={index}
-                className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-6 hover:bg-slate-900/70 transition-all duration-500 ease-out hover:scale-105 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/20 animate-in fade-in slide-in-from-bottom-4"
-                style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'backwards' }}
+                className={`bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-6 hover:bg-slate-900/70 transition-all duration-500 ease-out hover:scale-105 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/20 ${
+                  servicesVisible ? 'animate-fade-in-up' : ''
+                }`}
+                style={{ animationDelay: servicesVisible ? `${(index + 1) * 100}ms` : '0ms' }}
               >
-                <div className="text-blue-400 mb-4">{service.icon}</div>
+                <div className="text-blue-400 mb-4 transition-transform duration-300 hover:scale-110">{service.icon}</div>
                 <h3 className="text-xl font-bold mb-2 text-white">{service.title}</h3>
                 <p className="text-gray-200">{service.description}</p>
               </Card>
@@ -218,25 +230,27 @@ export default function Home() {
           </div>
 
           <div className="mt-16">
-            <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8">
+            <Card className={`bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8 transition-all duration-700 hover:shadow-2xl hover:shadow-blue-500/20 ${
+              servicesVisible ? 'animate-fade-in-up stagger-5' : ''
+            }`}>
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
                   <h3 className="text-2xl font-bold mb-6 text-white">Unsere Features</h3>
                   <div className="space-y-4">
                     {features.map((feature, index) => (
-                      <div key={index} className="flex items-start space-x-3">
-                        <CheckCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div key={index} className="flex items-start space-x-3 transition-all duration-300 hover:translate-x-2">
+                        <CheckCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5 transition-transform duration-300 hover:scale-110" />
                         <span className="text-white text-base">{feature}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="relative">
+                <div className="relative overflow-hidden rounded-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-xl blur-2xl" />
                   <img 
                     src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHw0fHx3ZWIlMjBkZXZlbG9wbWVudHxlbnwwfHx8Ymx1ZXwxNzYyMjQyNTQxfDA&ixlib=rb-4.1.0&q=85"
                     alt="Development"
-                    className="relative rounded-xl w-full h-full object-cover transition-transform duration-700"
+                    className="relative rounded-xl w-full h-full object-cover transition-all duration-700 hover:scale-105"
                     loading="lazy"
                   />
                 </div>
@@ -247,9 +261,9 @@ export default function Home() {
       </section>
 
       {/* Portfolio Section */}
-      <section id="portfolio" className="py-20 relative">
+      <section ref={portfolioRef} id="portfolio" className="py-20 relative">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div className={`text-center mb-16 ${portfolioVisible ? 'animate-fade-in-up' : ''}`}>
             <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-white">
               Unsere <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Projekte</span>
             </h2>
@@ -262,16 +276,19 @@ export default function Home() {
             {portfolio.map((project, index) => (
               <Card 
                 key={index}
-                className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-all duration-500 ease-out group hover:shadow-2xl hover:shadow-blue-500/30 animate-in fade-in slide-in-from-bottom-6"
-                style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'backwards' }}
+                className={`bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-all duration-500 ease-out group hover:shadow-2xl hover:shadow-blue-500/30 ${
+                  portfolioVisible ? 'animate-fade-in-up' : ''
+                }`}
+                style={{ animationDelay: portfolioVisible ? `${(index + 1) * 150}ms` : '0ms' }}
               >
                 <div className="relative h-48 overflow-hidden">
                   <img 
                     src={project.image}
                     alt={project.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
+                    loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
                 </div>
                 <div className="p-6">
                   <h3 className="text-2xl font-bold mb-2 text-white">{project.name}</h3>
@@ -290,8 +307,10 @@ export default function Home() {
             ))}
 
             {/* Add more project cards as placeholders */}
-            <Card className="bg-slate-900/30 border-blue-500/20 border-dashed backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[300px] hover:bg-slate-900/40 transition-all">
-              <div className="text-blue-400/50 mb-4">
+            <Card className={`bg-slate-900/30 border-blue-500/20 border-dashed backdrop-blur-xl p-6 flex flex-col items-center justify-center min-h-[300px] hover:bg-slate-900/40 transition-all duration-500 hover:scale-105 hover:border-blue-500/40 ${
+              portfolioVisible ? 'animate-fade-in-up stagger-3' : ''
+            }`}>
+              <div className="text-blue-400/50 mb-4 transition-all duration-300 hover:text-blue-400 hover:scale-110">
                 <Zap className="w-12 h-12" />
               </div>
               <p className="text-gray-200 text-center">Weitere Projekte folgen...</p>
@@ -301,11 +320,13 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 relative">
+      <section ref={aboutRef} id="about" className="py-20 relative">
         <div className="container mx-auto px-4">
-          <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden">
+          <Card className={`bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden transition-all duration-700 hover:shadow-2xl hover:shadow-blue-500/20 ${
+            aboutVisible ? 'animate-fade-in-up' : ''
+          }`}>
             <div className="grid lg:grid-cols-2 gap-8">
-              <div className="p-8 lg:p-12">
+              <div className={`p-8 lg:p-12 ${aboutVisible ? 'animate-slide-in-left stagger-1' : ''}`}>
                 <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-white">
                   Über <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">EHE Community</span>
                 </h2>
@@ -335,12 +356,13 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="relative h-full min-h-[400px]">
+              <div className={`relative h-full min-h-[400px] ${aboutVisible ? 'animate-slide-in-right stagger-2' : ''}`}>
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 blur-3xl" />
                 <img 
                   src="https://images.pexels.com/photos/4957793/pexels-photo-4957793.jpeg"
                   alt="Community"
-                  className="relative w-full h-full object-cover"
+                  className="relative w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                  loading="lazy"
                 />
               </div>
             </div>
@@ -349,10 +371,10 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-20 relative">
+      <section ref={contactRef} id="contact" className="py-20 relative">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16">
+            <div className={`text-center mb-16 ${contactVisible ? 'animate-fade-in-up' : ''}`}>
               <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-white">
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Kontakt</span>
               </h2>
@@ -361,7 +383,9 @@ export default function Home() {
               </p>
             </div>
 
-            <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8 lg:p-12">
+            <Card className={`bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8 lg:p-12 transition-all duration-700 hover:shadow-2xl hover:shadow-blue-500/20 ${
+              contactVisible ? 'animate-fade-in-up stagger-2' : ''
+            }`}>
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
                   <Mail className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
@@ -409,8 +433,8 @@ export default function Home() {
         <div className="container mx-auto px-4 py-12">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <Globe className="w-6 h-6 text-blue-400" />
+              <div className="flex items-center space-x-2 mb-4 transition-all duration-300 hover:scale-105">
+                <Globe className="w-6 h-6 text-blue-400 transition-transform duration-300 hover:rotate-12" />
                 <span className="text-lg font-bold text-white">EHE Community Webseite Studio</span>
               </div>
               <p className="text-gray-300 mb-4">
@@ -420,19 +444,19 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4 text-blue-400">Navigation</h4>
               <ul className="space-y-2">
-                <li><a href="#services" className="text-gray-300 hover:text-white transition-colors">Services</a></li>
-                <li><a href="#portfolio" className="text-gray-300 hover:text-white transition-colors">Portfolio</a></li>
-                <li><a href="#about" className="text-gray-300 hover:text-white transition-colors">Über Uns</a></li>
-                <li><a href="#contact" className="text-gray-300 hover:text-white transition-colors">Kontakt</a></li>
+                <li><a href="#services" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Services</a></li>
+                <li><a href="#portfolio" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Portfolio</a></li>
+                <li><a href="#about" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Über Uns</a></li>
+                <li><a href="#contact" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Kontakt</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4 text-blue-400">Rechtliches</h4>
               <ul className="space-y-2">
-                <li><Link href="/impressum" className="text-gray-300 hover:text-white transition-colors">Impressum</Link></li>
-                <li><Link href="/datenschutz" className="text-gray-300 hover:text-white transition-colors">Datenschutz</Link></li>
-                <li><Link href="/nutzungsbedingungen" className="text-gray-300 hover:text-white transition-colors">Nutzungsbedingungen</Link></li>
-                <li><Link href="/widerspruch" className="text-gray-300 hover:text-white transition-colors">Widerspruch</Link></li>
+                <li><Link href="/impressum" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Impressum</Link></li>
+                <li><Link href="/datenschutz" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Datenschutz</Link></li>
+                <li><Link href="/nutzungsbedingungen" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Nutzungsbedingungen</Link></li>
+                <li><Link href="/widerspruch" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Widerspruch</Link></li>
               </ul>
             </div>
           </div>
