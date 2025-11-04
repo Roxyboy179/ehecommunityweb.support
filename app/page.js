@@ -162,7 +162,7 @@ export default function Home() {
                     {features.map((feature, index) => (
                       <div key={index} className="flex items-start space-x-3">
                         <CheckCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
-                        <span className="text-slate-300">{feature}</span>
+                        <span className="text-gray-100">{feature}</span>
                       </div>
                     ))}
                   </div>
