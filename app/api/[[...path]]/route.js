@@ -1,6 +1,8 @@
 import { MongoClient } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { sendProjectRequestConfirmation, sendStatusUpdateEmail } from '@/lib/email'
 
 // MongoDB connection
 let client
@@ -13,6 +15,14 @@ async function connectToMongo() {
     db = client.db(process.env.DB_NAME)
   }
   return db
+}
+
+// Supabase client
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
 }
 
 // Helper function to handle CORS
@@ -79,6 +89,146 @@ async function handleRoute(request, { params }) {
       const cleanedStatusChecks = statusChecks.map(({ _id, ...rest }) => rest)
       
       return handleCORS(NextResponse.json(cleanedStatusChecks))
+    }
+
+    // ==================== PROJECT REQUESTS ENDPOINTS ====================
+
+    // Create new project request - POST /api/project-requests
+    if (route === '/project-requests' && method === 'POST') {
+      const body = await request.json()
+      const supabase = getSupabaseClient()
+      
+      if (!body.project_name || !body.project_type || !body.email || !body.description) {
+        return handleCORS(NextResponse.json(
+          { error: "Alle Felder sind erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Get user_id from auth header or session
+      const authHeader = request.headers.get('authorization')
+      let userId = body.user_id // Allow passing user_id from client
+      
+      // If no user_id provided, try to get from session
+      if (!userId && authHeader) {
+        const token = authHeader.replace('Bearer ', '')
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+        if (user) {
+          userId = user.id
+        }
+      }
+
+      // Insert into Supabase
+      const insertData = {
+        project_name: body.project_name,
+        project_type: body.project_type,
+        email: body.email,
+        description: body.description,
+        status: 'pending'
+      }
+
+      // Only add user_id if it exists (make it optional)
+      if (userId) {
+        insertData.user_id = userId
+      }
+
+      const { data, error } = await supabase
+        .from('project_requests')
+        .insert([insertData])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase insert error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Erstellen der Anfrage" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send confirmation email
+      await sendProjectRequestConfirmation(
+        body.email,
+        body.project_name,
+        body.project_type
+      )
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Get all project requests - GET /api/project-requests (Admin only)
+    if (route === '/project-requests' && method === 'GET') {
+      const supabase = getSupabaseClient()
+      
+      const { data, error } = await supabase
+        .from('project_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Supabase fetch error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Laden der Anfragen" }, 
+          { status: 500 }
+        ))
+      }
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Update project request status - PATCH /api/project-requests/:id
+    const updateRequestMatch = route.match(/^\/project-requests\/(.+)$/)
+    if (updateRequestMatch && method === 'PATCH') {
+      const requestId = updateRequestMatch[1]
+      const body = await request.json()
+      const supabase = getSupabaseClient()
+
+      if (!body.status) {
+        return handleCORS(NextResponse.json(
+          { error: "Status ist erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden" }, 
+          { status: 404 }
+        ))
+      }
+
+      // Update status
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ status: body.status })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Aktualisieren der Anfrage" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send status update email
+      await sendStatusUpdateEmail(
+        currentData.email,
+        currentData.project_name,
+        currentData.status,
+        body.status
+      )
+
+      return handleCORS(NextResponse.json(data))
     }
 
     // Route not found
