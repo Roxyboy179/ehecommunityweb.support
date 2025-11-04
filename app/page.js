@@ -95,28 +95,28 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="inline-block">
-                <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium backdrop-blur-sm">
+                <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-semibold backdrop-blur-sm">
                   Kostenlose Community Plattform
                 </span>
               </div>
-              <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+              <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white">
                 Professionelle
                 <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
                   Webseiten
                 </span>
                 für die Community
               </h1>
-              <p className="text-xl text-gray-100 leading-relaxed">
+              <p className="text-xl text-white leading-relaxed">
                 Wir sind eine kostenlose Plattform und erstellen Webseiten ausschließlich für unsere 
                 EHE Community. Keine kommerziellen Projekte - nur Community-Projekte!
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button size="lg" className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0">
-                  <a href="#contact">Projekt Anfragen</a>
+                <Button size="lg" className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold border-0 shadow-lg shadow-blue-500/30">
+                  <a href="#contact" className="text-white">Projekt Anfragen</a>
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="border-blue-500/50 hover:bg-blue-500/10 text-white">
-                  <a href="#portfolio">Portfolio Ansehen</a>
+                <Button size="lg" variant="outline" className="border-2 border-blue-400 hover:bg-blue-500/20 text-white font-semibold hover:border-blue-300">
+                  <a href="#portfolio" className="text-white">Portfolio Ansehen</a>
                 </Button>
               </div>
             </div>
@@ -138,10 +138,10 @@ export default function Home() {
       <section id="services" className="py-20 relative">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-white">
               Was wir <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">bieten</span>
             </h2>
-            <p className="text-xl text-gray-100 max-w-2xl mx-auto">
+            <p className="text-xl text-white max-w-2xl mx-auto">
               Professionelle Webentwicklung für Community-Projekte - keine kommerziellen Aufträge
             </p>
           </div>
@@ -163,12 +163,12 @@ export default function Home() {
             <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8">
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="text-2xl font-bold mb-6">Unsere Features</h3>
+                  <h3 className="text-2xl font-bold mb-6 text-white">Unsere Features</h3>
                   <div className="space-y-4">
                     {features.map((feature, index) => (
                       <div key={index} className="flex items-start space-x-3">
                         <CheckCircle className="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-100">{feature}</span>
+                        <span className="text-white text-base">{feature}</span>
                       </div>
                     ))}
                   </div>
@@ -191,10 +191,10 @@ export default function Home() {
       <section id="portfolio" className="py-20 relative">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-white">
               Unsere <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Projekte</span>
             </h2>
-            <p className="text-xl text-gray-100 max-w-2xl mx-auto">
+            <p className="text-xl text-white max-w-2xl mx-auto">
               Beispiele unserer Arbeit für die Community
             </p>
           </div>
@@ -220,7 +220,7 @@ export default function Home() {
                     href={project.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+                    className="inline-flex items-center text-blue-300 hover:text-blue-200 transition-colors font-semibold"
                   >
                     Projekt Ansehen
                     <ArrowRight className="ml-2 w-4 h-4" />
@@ -246,10 +246,10 @@ export default function Home() {
           <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden">
             <div className="grid lg:grid-cols-2 gap-8">
               <div className="p-8 lg:p-12">
-                <h2 className="text-4xl lg:text-5xl font-bold mb-6">
+                <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-white">
                   Über <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">EHE Community</span>
                 </h2>
-                <div className="space-y-4 text-gray-100 leading-relaxed">
+                <div className="space-y-4 text-white leading-relaxed text-base">
                   <p>
                     EHE Community Webseite Studio ist eine kostenlose Plattform, die ausschließlich 
                     Webseiten für unsere eigene Community erstellt. Keine kommerziellen Aufträge!
@@ -267,11 +267,11 @@ export default function Home() {
                 <div className="mt-8 flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <Heart className="w-5 h-5 text-red-400" />
-                    <span className="text-gray-100">Community-getrieben</span>
+                    <span className="text-white font-semibold">Community-getrieben</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="w-5 h-5 text-blue-400" />
-                    <span className="text-gray-100">Kostenlos</span>
+                    <span className="text-white font-semibold">Kostenlos</span>
                   </div>
                 </div>
               </div>
@@ -293,10 +293,10 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+              <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-white">
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Kontakt</span>
               </h2>
-              <p className="text-xl text-gray-100">
+              <p className="text-xl text-white">
                 Fragen oder Feedback? Kontaktieren Sie uns!
               </p>
             </div>
@@ -306,35 +306,35 @@ export default function Home() {
                 <div className="flex items-start space-x-4">
                   <Mail className="w-6 h-6 text-blue-400 flex-shrink-0 mt-1" />
                   <div>
-                    <h3 className="text-xl font-bold mb-2">E-Mail Kontakt</h3>
+                    <h3 className="text-xl font-bold mb-2 text-white">E-Mail Kontakt</h3>
                     <a 
                       href="mailto:hamburgrp20@gmail.com"
-                      className="text-blue-400 hover:text-blue-300 transition-colors text-lg"
+                      className="text-blue-300 hover:text-blue-200 transition-colors text-lg font-semibold"
                     >
                       hamburgrp20@gmail.com
                     </a>
-                    <p className="text-gray-300 mt-2">Antwortzeit: In der Regel innerhalb von 48 Stunden</p>
+                    <p className="text-gray-200 mt-2">Antwortzeit: In der Regel innerhalb von 48 Stunden</p>
                   </div>
                 </div>
 
                 <div className="border-t border-blue-500/20 pt-6">
-                  <h3 className="text-xl font-bold mb-4">Was können Sie anfragen?</h3>
+                  <h3 className="text-xl font-bold mb-4 text-white">Was können Sie anfragen?</h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-300">Neue Webseiten-Projekte</span>
+                      <span className="text-white">Neue Webseiten-Projekte</span>
                     </div>
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-300">Technischer Support</span>
+                      <span className="text-white">Technischer Support</span>
                     </div>
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-300">Allgemeine Fragen</span>
+                      <span className="text-white">Allgemeine Fragen</span>
                     </div>
                     <div className="flex items-start space-x-3">
                       <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-300">Rechtliche Anfragen</span>
+                      <span className="text-white">Rechtliche Anfragen</span>
                     </div>
                   </div>
                 </div>
@@ -351,32 +351,32 @@ export default function Home() {
             <div className="col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <Globe className="w-6 h-6 text-blue-400" />
-                <span className="text-lg font-bold">EHE Community Webseite Studio</span>
+                <span className="text-lg font-bold text-white">EHE Community Webseite Studio</span>
               </div>
-              <p className="text-slate-400 mb-4">
+              <p className="text-gray-300 mb-4">
                 Kostenlose Plattform für professionelle Webseiten - von der Community, für die Community.
               </p>
             </div>
             <div>
               <h4 className="font-bold mb-4 text-blue-400">Navigation</h4>
               <ul className="space-y-2">
-                <li><a href="#services" className="text-slate-400 hover:text-blue-400 transition-colors">Services</a></li>
-                <li><a href="#portfolio" className="text-slate-400 hover:text-blue-400 transition-colors">Portfolio</a></li>
-                <li><a href="#about" className="text-slate-400 hover:text-blue-400 transition-colors">Über Uns</a></li>
-                <li><a href="#contact" className="text-slate-400 hover:text-blue-400 transition-colors">Kontakt</a></li>
+                <li><a href="#services" className="text-gray-300 hover:text-white transition-colors">Services</a></li>
+                <li><a href="#portfolio" className="text-gray-300 hover:text-white transition-colors">Portfolio</a></li>
+                <li><a href="#about" className="text-gray-300 hover:text-white transition-colors">Über Uns</a></li>
+                <li><a href="#contact" className="text-gray-300 hover:text-white transition-colors">Kontakt</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold mb-4 text-blue-400">Rechtliches</h4>
               <ul className="space-y-2">
-                <li><Link href="/impressum" className="text-slate-400 hover:text-blue-400 transition-colors">Impressum</Link></li>
-                <li><Link href="/datenschutz" className="text-slate-400 hover:text-blue-400 transition-colors">Datenschutz</Link></li>
-                <li><Link href="/nutzungsbedingungen" className="text-slate-400 hover:text-blue-400 transition-colors">Nutzungsbedingungen</Link></li>
-                <li><Link href="/widerspruch" className="text-slate-400 hover:text-blue-400 transition-colors">Widerspruch</Link></li>
+                <li><Link href="/impressum" className="text-gray-300 hover:text-white transition-colors">Impressum</Link></li>
+                <li><Link href="/datenschutz" className="text-gray-300 hover:text-white transition-colors">Datenschutz</Link></li>
+                <li><Link href="/nutzungsbedingungen" className="text-gray-300 hover:text-white transition-colors">Nutzungsbedingungen</Link></li>
+                <li><Link href="/widerspruch" className="text-gray-300 hover:text-white transition-colors">Widerspruch</Link></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-blue-500/20 pt-8 text-center text-slate-400">
+          <div className="border-t border-blue-500/20 pt-8 text-center text-gray-300">
             <p>&copy; 2025 EHE Community Webseite Studio. Alle Rechte vorbehalten.</p>
             <p className="text-sm mt-2">Private Nutzung - Keine kommerzielle Verwendung</p>
           </div>
