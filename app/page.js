@@ -147,8 +147,8 @@ export default function Home() {
                 className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-6 hover:bg-slate-900/70 transition-all duration-300 hover:scale-105 hover:border-blue-500/40"
               >
                 <div className="text-blue-400 mb-4">{service.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{service.title}</h3>
-                <p className="text-slate-400">{service.description}</p>
+                <h3 className="text-xl font-bold mb-2 text-white">{service.title}</h3>
+                <p className="text-gray-200">{service.description}</p>
               </Card>
             ))}
           </div>
