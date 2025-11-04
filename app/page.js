@@ -142,7 +142,7 @@ export default function Home() {
               Was wir <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">bieten</span>
             </h2>
             <p className="text-xl text-gray-100 max-w-2xl mx-auto">
-              Professionelle Webentwicklung mit modernsten Technologien - komplett kostenlos für unsere Community
+              Professionelle Webentwicklung für Community-Projekte - keine kommerziellen Aufträge
             </p>
           </div>
 
