@@ -101,8 +101,8 @@ export default function Home() {
                 für die Community
               </h1>
               <p className="text-xl text-gray-100 leading-relaxed">
-                Wir erstellen kostenlose Webseiten für Unternehmen und Privatpersonen. 
-                Als Teil der EHE Community bieten wir professionelle Webentwicklung ohne Kosten.
+                Wir sind eine kostenlose Plattform und erstellen Webseiten ausschließlich für unsere 
+                EHE Community. Keine kommerziellen Projekte - nur Community-Projekte!
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0">
@@ -307,7 +307,7 @@ export default function Home() {
                     >
                       hamburgrp20@gmail.com
                     </a>
-                    <p className="text-slate-400 mt-2">Antwortzeit: In der Regel innerhalb von 48 Stunden</p>
+                    <p className="text-gray-300 mt-2">Antwortzeit: In der Regel innerhalb von 48 Stunden</p>
                   </div>
                 </div>
 
