@@ -138,4 +138,26 @@ code {
   body {
     @apply bg-background text-foreground;
     }
+  
+  /* Performance Optimierungen */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Scroll-Behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* GPU Beschleunigung für Animationen */
+  button, a, [class*="hover:"] {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Flüssige Transitions */
+  * {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
