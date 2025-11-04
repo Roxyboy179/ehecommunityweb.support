@@ -261,11 +261,11 @@ export default function Home() {
                 <div className="mt-8 flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <Heart className="w-5 h-5 text-red-400" />
-                    <span className="text-slate-300">Community-getrieben</span>
+                    <span className="text-gray-100">Community-getrieben</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="w-5 h-5 text-blue-400" />
-                    <span className="text-slate-300">Kostenlos</span>
+                    <span className="text-gray-100">Kostenlos</span>
                   </div>
                 </div>
               </div>
