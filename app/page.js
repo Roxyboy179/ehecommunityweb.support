@@ -297,7 +297,7 @@ export default function Home() {
                 Projekt <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">anfragen</span>
               </h2>
               <p className="text-xl text-gray-100">
-                Haben Sie ein Projekt im Sinn? Kontaktieren Sie uns!
+                Fragen oder Feedback? Kontaktieren Sie uns!
               </p>
             </div>
 
