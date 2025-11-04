@@ -1,5 +1,7 @@
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { CookieProvider } from '@/contexts/CookieContext'
+import CookieBanner from '@/components/CookieBanner'
 
 export const metadata = {
   title: 'EHE Community Webseite Studio',
@@ -11,11 +13,14 @@ icons: {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <CookieProvider>
+          <AuthProvider>
+            {children}
+            <CookieBanner />
+          </AuthProvider>
+        </CookieProvider>
       </body>
     </html>
   )
