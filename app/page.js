@@ -62,21 +62,21 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white">
       {/* Navigation */}
       <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/80 backdrop-blur-xl border-b border-purple-200 shadow-sm' : 'bg-white/50 backdrop-blur-sm'
+        scrolled ? 'bg-slate-950/80 backdrop-blur-xl border-b border-blue-500/20' : 'bg-transparent'
       }`}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <Globe className="w-8 h-8 text-purple-600" />
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+              <Globe className="w-8 h-8 text-blue-400" />
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 EHE Community Webseite Studio
               </span>
             </Link>
             <div className="hidden md:flex items-center space-x-6">
-              <a href="#services" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Services</a>
-              <a href="#portfolio" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Portfolio</a>
-              <a href="#about" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Über Uns</a>
-              <a href="#contact" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Kontakt</a>
+              <a href="#services" className="text-white hover:text-blue-400 transition-colors font-medium">Services</a>
+              <a href="#portfolio" className="text-white hover:text-blue-400 transition-colors font-medium">Portfolio</a>
+              <a href="#about" className="text-white hover:text-blue-400 transition-colors font-medium">Über Uns</a>
+              <a href="#contact" className="text-white hover:text-blue-400 transition-colors font-medium">Kontakt</a>
             </div>
           </div>
         </div>
