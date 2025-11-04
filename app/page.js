@@ -228,7 +228,7 @@ export default function Home() {
               <div className="text-blue-400/50 mb-4">
                 <Zap className="w-12 h-12" />
               </div>
-              <p className="text-slate-400 text-center">Weitere Projekte folgen...</p>
+              <p className="text-gray-200 text-center">Weitere Projekte folgen...</p>
             </Card>
           </div>
         </div>
