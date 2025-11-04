@@ -2,18 +2,29 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Code, Palette, Users, Zap, CheckCircle, ArrowRight, Mail, Globe, Heart } from 'lucide-react'
+import { Code, Palette, Users, Zap, CheckCircle, ArrowRight, Mail, Globe, Heart, LogIn, LogOut } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false)
+  const { user, isOwner, signOut } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
+    let ticking = false
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 50)
+          ticking = false
+        })
+        ticking = true
+      }
     }
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -66,6 +77,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white">
+
       {/* Navigation */}
       <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
         scrolled ? 'bg-slate-950/80 backdrop-blur-xl border-b border-blue-500/20' : 'bg-transparent'
@@ -83,6 +95,34 @@ export default function Home() {
               <a href="#portfolio" className="text-white hover:text-blue-400 transition-colors font-medium">Portfolio</a>
               <a href="#about" className="text-white hover:text-blue-400 transition-colors font-medium">Über Uns</a>
               <a href="#contact" className="text-white hover:text-blue-400 transition-colors font-medium">Kontakt</a>
+              {user ? (
+                <>
+                  {isOwner && (
+                    <Link href="/admin" className="text-white hover:text-blue-400 transition-colors font-medium">
+                      Admin
+                    </Link>
+                  )}
+                  <Button
+                    onClick={signOut}
+                    size="sm"
+                    variant="outline"
+                    className="border-blue-400 text-white hover:bg-blue-500/20"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Abmelden
+                  </Button>
+                </>
+              ) : (
+                <Link href="/login">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Anmelden
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -111,13 +151,29 @@ export default function Home() {
                 EHE Community. Keine kommerziellen Projekte - nur Community-Projekte!
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button size="lg" className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold border-0 shadow-lg shadow-blue-500/30">
-                  <a href="#contact" className="text-white">Projekt Anfragen</a>
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Button>
-                <Button size="lg" variant="outline" className="border-2 border-blue-400 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold hover:border-blue-300">
-                  <a href="#portfolio" className="text-white">Portfolio Ansehen</a>
-                </Button>
+                {user ? (
+                  <Link 
+                    href="/projekt-anfrage"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-10 px-8 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-lg shadow-blue-500/30 hover:scale-105 duration-300"
+                  >
+                    Projekt Anfragen
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                ) : (
+                  <Link 
+                    href="/login"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-10 px-8 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-lg shadow-blue-500/30 hover:scale-105 duration-300"
+                  >
+                    Projekt Anfragen
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                )}
+                <a 
+                  href="#portfolio"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-10 px-8 border-2 border-blue-400 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold hover:border-blue-300 hover:scale-105 duration-300"
+                >
+                  Portfolio Ansehen
+                </a>
               </div>
             </div>
             <div className="relative">
@@ -126,7 +182,8 @@ export default function Home() {
                 <img 
                   src="https://images.unsplash.com/photo-1610989001873-03968eed0f08?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwyfHx3ZWIlMjBkZXZlbG9wbWVudHxlbnwwfHx8Ymx1ZXwxNzYyMjQyNTQxfDA&ixlib=rb-4.1.0&q=85"
                   alt="Web Development"
-                  className="w-full h-auto rounded-lg"
+                  className="w-full h-auto rounded-lg transition-transform duration-700"
+                  loading="eager"
                 />
               </Card>
             </div>
@@ -150,7 +207,8 @@ export default function Home() {
             {services.map((service, index) => (
               <Card 
                 key={index}
-                className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-6 hover:bg-slate-900/70 transition-all duration-300 hover:scale-105 hover:border-blue-500/40"
+                className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-6 hover:bg-slate-900/70 transition-all duration-500 ease-out hover:scale-105 hover:border-blue-500/40 hover:shadow-xl hover:shadow-blue-500/20 animate-in fade-in slide-in-from-bottom-4"
+                style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'backwards' }}
               >
                 <div className="text-blue-400 mb-4">{service.icon}</div>
                 <h3 className="text-xl font-bold mb-2 text-white">{service.title}</h3>
@@ -178,7 +236,8 @@ export default function Home() {
                   <img 
                     src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHw0fHx3ZWIlMjBkZXZlbG9wbWVudHxlbnwwfHx8Ymx1ZXwxNzYyMjQyNTQxfDA&ixlib=rb-4.1.0&q=85"
                     alt="Development"
-                    className="relative rounded-xl w-full h-full object-cover"
+                    className="relative rounded-xl w-full h-full object-cover transition-transform duration-700"
+                    loading="lazy"
                   />
                 </div>
               </div>
@@ -203,7 +262,8 @@ export default function Home() {
             {portfolio.map((project, index) => (
               <Card 
                 key={index}
-                className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-all duration-300 group"
+                className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-all duration-500 ease-out group hover:shadow-2xl hover:shadow-blue-500/30 animate-in fade-in slide-in-from-bottom-6"
+                style={{ animationDelay: `${index * 150}ms`, animationFillMode: 'backwards' }}
               >
                 <div className="relative h-48 overflow-hidden">
                   <img 
