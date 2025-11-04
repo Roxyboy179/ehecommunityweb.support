@@ -208,8 +208,8 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
                 </div>
                 <div className="p-6">
-                  <h3 className="text-2xl font-bold mb-2">{project.name}</h3>
-                  <p className="text-slate-400 mb-4">{project.description}</p>
+                  <h3 className="text-2xl font-bold mb-2 text-white">{project.name}</h3>
+                  <p className="text-gray-200 mb-4">{project.description}</p>
                   <a 
                     href={project.link}
                     target="_blank"
