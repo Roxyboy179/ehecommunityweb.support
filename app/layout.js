@@ -1,8 +1,11 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Next.js MongoDB Template',
-  description: 'A simple template with App Router, MongoDB, and shadcn/ui',
+  title: 'EHE Community Webseite Studio',
+  description: 'Unsere Hauptseite der EHE Community Webseite Studio',
+icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({ children }) {
