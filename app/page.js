@@ -294,7 +294,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl lg:text-5xl font-bold mb-4">
-                Projekt <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">anfragen</span>
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Kontakt</span>
               </h2>
               <p className="text-xl text-gray-100">
                 Fragen oder Feedback? Kontaktieren Sie uns!
