@@ -244,6 +244,37 @@ async function handleRoute(request, { params }) {
       return handleCORS(NextResponse.json(data))
     }
 
+    // Get user's own project requests - GET /api/my-projects?email=xxx
+    if (route === '/my-projects' && method === 'GET') {
+      const supabase = getSupabaseClient()
+      const url = new URL(request.url)
+      const email = url.searchParams.get('email')
+
+      if (!email) {
+        return handleCORS(NextResponse.json(
+          { error: "E-Mail ist erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      const { data, error } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('email', email)
+        .neq('status', 'removed')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Supabase fetch error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Laden der Projekte" }, 
+          { status: 500 }
+        ))
+      }
+
+      return handleCORS(NextResponse.json(data))
+    }
+
     // Update project request status - PATCH /api/project-requests/:id
     const updateRequestMatch = route.match(/^\/project-requests\/(.+)$/)
     if (updateRequestMatch && method === 'PATCH') {
@@ -297,6 +328,64 @@ async function handleRoute(request, { params }) {
       )
 
       return handleCORS(NextResponse.json(data))
+    }
+
+    // Remove project (user removes their own project) - DELETE /api/project-requests/:id/remove
+    const removeRequestMatch = route.match(/^\/project-requests\/(.+)\/remove$/)
+    if (removeRequestMatch && method === 'DELETE') {
+      const requestId = removeRequestMatch[1]
+      const body = await request.json()
+      const supabase = getSupabaseClient()
+
+      if (!body.email) {
+        return handleCORS(NextResponse.json(
+          { error: "E-Mail ist erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .eq('email', body.email)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden oder keine Berechtigung" }, 
+          { status: 404 }
+        ))
+      }
+
+      // Update status to 'removed' instead of deleting
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ status: 'removed' })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Entfernen des Projekts" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send removal confirmation email
+      const { sendProjectRemovalEmail } = await import('@/lib/email')
+      await sendProjectRemovalEmail(
+        currentData.email,
+        currentData.project_name
+      )
+
+      return handleCORS(NextResponse.json({ 
+        success: true, 
+        message: "Projekt wurde erfolgreich entfernt" 
+      }))
     }
 
     // Route not found
