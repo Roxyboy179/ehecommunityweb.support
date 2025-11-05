@@ -12,6 +12,7 @@ export default function ProjektAnfragePage() {
   const [projectName, setProjectName] = useState('')
   const [projectType, setProjectType] = useState('website')
   const [description, setDescription] = useState('')
+  const [projectLink, setProjectLink] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -53,6 +54,7 @@ export default function ProjektAnfragePage() {
           project_type: projectType,
           email: user.email,
           description: description,
+          project_link: projectLink,
           user_id: user.id,
         }),
       })
@@ -67,6 +69,7 @@ export default function ProjektAnfragePage() {
       setProjectName('')
       setProjectType('website')
       setDescription('')
+      setProjectLink('')
       
       // Redirect after 3 seconds
       setTimeout(() => {
@@ -97,6 +100,38 @@ export default function ProjektAnfragePage() {
             Füllen Sie das Formular aus, um ein neues Community-Projekt anzufragen
           </p>
         </div>
+
+        {/* Informational Section */}
+        <Card className="bg-blue-500/10 border-blue-500/30 backdrop-blur-xl p-6 mb-8">
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-blue-400" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-blue-300 mb-2">
+                Was macht diese Plattform?
+              </h3>
+              <div className="text-gray-200 space-y-2">
+                <p>
+                  <strong>Wichtig:</strong> Wir erstellen keine Projekte! Diese Plattform dient dazu, 
+                  Community-Projekte <strong>sichtbar zu machen</strong>.
+                </p>
+                <p>
+                  Wenn Ihre Projekt-Anfrage angenommen wird, wird sie in unserer 
+                  <Link href="/projekte" className="text-blue-300 hover:text-blue-200 underline mx-1">
+                    Projektübersicht
+                  </Link>
+                  veröffentlicht und für die gesamte EHE Community sichtbar gemacht.
+                </p>
+                <p className="text-sm text-gray-300 mt-3">
+                  💡 Diese Plattform ist eine Schaufenster für Community-Projekte, keine Entwicklungsagentur.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-xl p-8">
           {success ? (
@@ -168,6 +203,27 @@ export default function ProjektAnfragePage() {
                     readOnly
                   />
                 </div>
+              </div>
+
+              {/* Project Link */}
+              <div className="space-y-2">
+                <label htmlFor="projectLink" className="text-sm font-medium text-gray-200">
+                  Projekt-Link (optional)
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    id="projectLink"
+                    type="url"
+                    value={projectLink}
+                    onChange={(e) => setProjectLink(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-blue-500/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    placeholder="https://beispiel.de"
+                  />
+                </div>
+                <p className="text-xs text-gray-400">
+                  Falls Ihr Projekt bereits einen Link hat, geben Sie ihn hier an
+                </p>
               </div>
 
               {/* Description */}
