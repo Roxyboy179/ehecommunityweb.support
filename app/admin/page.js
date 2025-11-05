@@ -81,7 +81,7 @@ export default function AdminPage() {
         return <Clock className="w-5 h-5 text-yellow-400" />
       case 'In Bearbeitung':
         return <RefreshCw className="w-5 h-5 text-blue-400" />
-      case 'Angenommen':
+      case 'approved':
         return <CheckCircle className="w-5 h-5 text-green-400" />
       case 'Abgelehnt':
         return <XCircle className="w-5 h-5 text-red-400" />
@@ -96,12 +96,27 @@ export default function AdminPage() {
         return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
       case 'In Bearbeitung':
         return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
-      case 'Angenommen':
+      case 'approved':
         return 'text-green-400 bg-green-500/10 border-green-500/20'
       case 'Abgelehnt':
         return 'text-red-400 bg-red-500/10 border-red-500/20'
       default:
         return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+    }
+  }
+  
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'Ausstehend'
+      case 'In Bearbeitung':
+        return 'In Bearbeitung'
+      case 'approved':
+        return 'Angenommen'
+      case 'Abgelehnt':
+        return 'Abgelehnt'
+      default:
+        return status
     }
   }
 
@@ -193,7 +208,7 @@ export default function AdminPage() {
                       </div>
                       <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border ${getStatusColor(request.status)}`}>
                         {getStatusIcon(request.status)}
-                        <span className="text-sm font-semibold">{request.status}</span>
+                        <span className="text-sm font-semibold">{getStatusLabel(request.status)}</span>
                       </div>
                     </div>
 
@@ -208,6 +223,21 @@ export default function AdminPage() {
                         <span className="text-blue-300">{request.email}</span>
                       </div>
                     </div>
+
+                    {/* Project Link */}
+                    {request.project_link && (
+                      <div>
+                        <span className="text-gray-400 text-sm">Projekt-Link:</span>{' '}
+                        <a 
+                          href={request.project_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 underline break-all"
+                        >
+                          {request.project_link}
+                        </a>
+                      </div>
+                    )}
 
                     {/* Description */}
                     <div>
@@ -231,8 +261,8 @@ export default function AdminPage() {
                       )}
                     </Button>
                     <Button
-                      onClick={() => updateStatus(request.id, 'Angenommen')}
-                      disabled={updatingId === request.id || request.status === 'Angenommen'}
+                      onClick={() => updateStatus(request.id, 'approved')}
+                      disabled={updatingId === request.id || request.status === 'approved'}
                       className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       size="sm"
                     >
