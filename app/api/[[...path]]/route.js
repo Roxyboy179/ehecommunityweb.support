@@ -170,9 +170,13 @@ async function handleRoute(request, { params }) {
         status: 'pending'
       }
 
-      // Only add user_id if it exists (make it optional)
+      // Add optional fields
       if (userId) {
         insertData.user_id = userId
+      }
+      
+      if (body.project_link) {
+        insertData.project_link = body.project_link
       }
 
       const { data, error } = await supabase
@@ -212,6 +216,27 @@ async function handleRoute(request, { params }) {
         console.error('Supabase fetch error:', error)
         return handleCORS(NextResponse.json(
           { error: "Fehler beim Laden der Anfragen" }, 
+          { status: 500 }
+        ))
+      }
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Get approved projects - GET /api/projects/approved (Public endpoint)
+    if (route === '/projects/approved' && method === 'GET') {
+      const supabase = getSupabaseClient()
+      
+      const { data, error } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Supabase fetch error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Laden der Projekte" }, 
           { status: 500 }
         ))
       }
