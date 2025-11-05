@@ -110,6 +110,9 @@ export default function Home() {
               <a href="#contact" className="text-white hover:text-blue-400 transition-colors font-medium">Kontakt</a>
               {user ? (
                 <>
+                  <Link href="/meine-projekte" className="text-white hover:text-blue-400 transition-colors font-medium">
+                    Meine Projekte
+                  </Link>
                   {isOwner && (
                     <Link href="/admin" className="text-white hover:text-blue-400 transition-colors font-medium">
                       Admin
