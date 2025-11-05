@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Globe, Loader2, Calendar, Tag, AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, Trash2, AlertTriangle, ExternalLink, Mail, Send, Eye, EyeOff, ChevronDown, ChevronUp } from 'lucide-react'
+import { Globe, Loader2, Calendar, Tag, AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, Trash2, AlertTriangle, ExternalLink, Mail, Send, Eye, EyeOff, ChevronDown, ChevronUp, TimerReset, RotateCw } from 'lucide-react'
 
 export default function MeineProjektePage() {
   const [projects, setProjects] = useState([])
@@ -19,6 +19,7 @@ export default function MeineProjektePage() {
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
   const [projectToRestore, setProjectToRestore] = useState(null)
   const [expandedProjects, setExpandedProjects] = useState(new Set())
+  const [extendingId, setExtendingId] = useState(null)
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
@@ -144,6 +145,44 @@ export default function MeineProjektePage() {
   const cancelRestore = () => {
     setShowRestoreDialog(false)
     setProjectToRestore(null)
+  }
+
+  const handleExtendProject = async (project) => {
+    if (!project.id) return
+
+    setExtendingId(project.id)
+    
+    try {
+      const response = await fetch(`/api/project-requests/${project.id}/extend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: user.email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Verlängern des Projekts')
+      }
+
+      await loadMyProjects()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setExtendingId(null)
+    }
+  }
+
+  const isProjectExpired = (expirationDate) => {
+    if (!expirationDate) return false
+    return new Date(expirationDate) <= new Date()
+  }
+
+  const canExtendProject = (project) => {
+    const extensionCount = project.extension_count || 0
+    return extensionCount < 3 && (project.status === 'approved' && !project.is_active)
   }
 
   const getStatusIcon = (status) => {
@@ -432,21 +471,75 @@ export default function MeineProjektePage() {
                           )}
 
                           {/* Status-specific Messages */}
-                          {project.status === 'approved' && (
+                          {project.status === 'approved' && project.is_active && (
                             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
                               <div className="flex items-start gap-3">
                                 <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-                                <div>
+                                <div className="flex-1">
                                   <p className="text-green-300 text-sm font-semibold mb-1">
                                     🎉 Herzlichen Glückwunsch!
                                   </p>
-                                  <p className="text-green-200 text-sm">
+                                  <p className="text-green-200 text-sm mb-3">
                                     Ihr Projekt ist jetzt öffentlich auf der Projekte-Seite sichtbar! Besuchen Sie die Seite, um Ihr Projekt anzusehen.
                                   </p>
-                                  <Link href="/projekte" className="mt-2 inline-flex items-center gap-2 text-green-400 hover:text-green-300 text-sm font-semibold">
+                                  {project.expiration_date && (
+                                    <div className="mt-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <TimerReset className="w-4 h-4 text-blue-400" />
+                                        <span className="text-blue-300 text-xs font-semibold">Ablaufinformationen</span>
+                                      </div>
+                                      <div className="space-y-1 text-xs text-gray-300">
+                                        <p>Ablaufdatum: <strong className="text-white">{formatDate(project.expiration_date)}</strong></p>
+                                        <p>Dauer: <strong className="text-white">{project.duration_months || 1} Monat(e)</strong></p>
+                                        <p>Verlängerungen genutzt: <strong className="text-white">{project.extension_count || 0} von 3</strong></p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <Link href="/projekte" className="mt-3 inline-flex items-center gap-2 text-green-400 hover:text-green-300 text-sm font-semibold">
                                     <Eye className="w-4 h-4" />
                                     Projekt ansehen
                                   </Link>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {project.status === 'approved' && !project.is_active && (
+                            <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
+                              <div className="flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-orange-300 text-sm font-semibold mb-1">
+                                    ⏰ Projekt abgelaufen
+                                  </p>
+                                  <p className="text-orange-200 text-sm mb-3">
+                                    Ihr Projekt ist abgelaufen und wird nicht mehr öffentlich angezeigt.
+                                  </p>
+                                  {project.expiration_date && (
+                                    <div className="mt-2 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                                      <div className="space-y-1 text-xs text-gray-300">
+                                        <p>Abgelaufen am: <strong className="text-white">{formatDate(project.expiration_date)}</strong></p>
+                                        <p>Verlängerungen genutzt: <strong className="text-white">{project.extension_count || 0} von 3</strong></p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {canExtendProject(project) ? (
+                                    <div className="mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                                      <p className="text-blue-200 text-xs">
+                                        ✓ Sie können Ihr Projekt jetzt verlängern ({3 - (project.extension_count || 0)} Verlängerung(en) verfügbar)
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                                      <p className="text-red-200 text-xs">
+                                        ⚠️ Sie haben bereits 3 Verlängerungen durchgeführt. Um Ihr Projekt erneut anzuzeigen, müssen Sie eine neue Anfrage einreichen.
+                                      </p>
+                                      <Link href="/projekt-anfrage" className="mt-2 inline-flex items-center gap-2 text-red-400 hover:text-red-300 text-xs font-semibold">
+                                        <Send className="w-3 h-3" />
+                                        Neue Anfrage einreichen
+                                      </Link>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -537,6 +630,21 @@ export default function MeineProjektePage() {
 
                         {/* Action Buttons */}
                         <div className="flex lg:flex-col gap-2 min-w-[200px]">
+                          {canExtendProject(project) && (
+                            <Button
+                              onClick={() => handleExtendProject(project)}
+                              disabled={extendingId === project.id}
+                              className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {extendingId === project.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              ) : (
+                                <RotateCw className="w-4 h-4 mr-2" />
+                              )}
+                              Verlängern
+                            </Button>
+                          )}
+
                           {project.status === 'removed' && (
                             <Button
                               onClick={() => handleRestoreClick(project)}
@@ -552,7 +660,7 @@ export default function MeineProjektePage() {
                             </Button>
                           )}
                           
-                          {project.status !== 'removed' && project.status !== 'restoration_requested' && project.status !== 'blocked' && (
+                          {project.status !== 'removed' && project.status !== 'restoration_requested' && project.status !== 'blocked' && project.is_active && (
                             <Button
                               onClick={() => handleRemoveClick(project)}
                               disabled={removingId === project.id}
