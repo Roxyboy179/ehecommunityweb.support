@@ -103,6 +103,7 @@ export default function Home() {
               </span>
             </Link>
             <div className="hidden md:flex items-center space-x-6">
+              <Link href="/projekte" className="text-white hover:text-blue-400 transition-colors font-medium">Projekte</Link>
               <a href="#services" className="text-white hover:text-blue-400 transition-colors font-medium">Services</a>
               <a href="#portfolio" className="text-white hover:text-blue-400 transition-colors font-medium">Portfolio</a>
               <a href="#about" className="text-white hover:text-blue-400 transition-colors font-medium">Über Uns</a>
@@ -152,15 +153,15 @@ export default function Home() {
                 </span>
               </div>
               <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white">
-                Professionelle
+                Community-Projekte
                 <span className="block bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                  Webseiten
+                  Sichtbar machen
                 </span>
-                für die Community
+                für alle
               </h1>
               <p className="text-xl text-white leading-relaxed">
-                Wir sind eine kostenlose Plattform und erstellen Webseiten ausschließlich für unsere 
-                EHE Community. Keine kommerziellen Projekte - nur Community-Projekte!
+                Wir sind eine kostenlose Plattform und machen Community-Projekte sichtbar. 
+                Keine Projektentwicklung - wir geben bestehenden Projekten eine Bühne!
               </p>
               <div className="flex flex-wrap gap-4">
                 {user ? (
@@ -168,7 +169,7 @@ export default function Home() {
                     href="/projekt-anfrage"
                     className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-10 px-8 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-lg shadow-blue-500/30 hover:scale-105 duration-300"
                   >
-                    Projekt Anfragen
+                    Projekt einreichen
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 ) : (
@@ -176,16 +177,16 @@ export default function Home() {
                     href="/login"
                     className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-10 px-8 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold shadow-lg shadow-blue-500/30 hover:scale-105 duration-300"
                   >
-                    Projekt Anfragen
+                    Projekt einreichen
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Link>
                 )}
-                <a 
-                  href="#portfolio"
+                <Link 
+                  href="/projekte"
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-10 px-8 border-2 border-blue-400 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-semibold hover:border-blue-300 hover:scale-105 duration-300"
                 >
-                  Portfolio Ansehen
-                </a>
+                  Projekte ansehen
+                </Link>
               </div>
             </div>
             <div className={`relative ${heroVisible ? 'animate-fade-in stagger-2' : ''}`}>
@@ -212,7 +213,7 @@ export default function Home() {
               Was wir <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">bieten</span>
             </h2>
             <p className="text-xl text-white max-w-2xl mx-auto">
-              Professionelle Webentwicklung für Community-Projekte - keine kommerziellen Aufträge
+              Eine Plattform für Community-Projekte - wir machen sie sichtbar, nicht entwickeln
             </p>
           </div>
 
@@ -335,17 +336,16 @@ export default function Home() {
                 </h2>
                 <div className="space-y-4 text-white leading-relaxed text-base">
                   <p>
-                    EHE Community Webseite Studio ist eine kostenlose Plattform, die ausschließlich 
-                    Webseiten für unsere eigene Community erstellt. Keine kommerziellen Aufträge!
+                    EHE Community Webseite Studio ist eine kostenlose Plattform, die Community-Projekte 
+                    sichtbar macht. Wir entwickeln keine Projekte, sondern geben ihnen eine Bühne!
                   </p>
                   <p>
-                    Wir sind eine engagierte Community von Entwicklern und Designern, die ihre 
-                    Fähigkeiten einsetzen, um hochwertige Community-Projekte wie BotForge und das 
-                    EHE Dashboard zu realisieren.
+                    Wir sind eine engagierte Community, die bestehende Projekte wie BotForge und das 
+                    EHE Dashboard präsentiert und für alle Community-Mitglieder zugänglich macht.
                   </p>
                   <p>
-                    Unser Ziel ist es, moderne Webtechnologien für unsere Community zugänglich zu machen 
-                    und gemeinsam großartige digitale Erlebnisse zu schaffen.
+                    Unser Ziel ist es, Community-Projekte zu fördern, indem wir ihnen eine professionelle 
+                    Plattform zur Präsentation bieten und so die Sichtbarkeit erhöhen.
                   </p>
                 </div>
                 <div className="mt-8 flex items-center space-x-4">
@@ -455,6 +455,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4 text-blue-400">Navigation</h4>
               <ul className="space-y-2">
+                <li><Link href="/projekte" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Projekte</Link></li>
                 <li><a href="#services" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Services</a></li>
                 <li><a href="#portfolio" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Portfolio</a></li>
                 <li><a href="#about" className="text-gray-300 hover:text-white hover:translate-x-1 inline-block transition-all duration-300">Über Uns</a></li>
