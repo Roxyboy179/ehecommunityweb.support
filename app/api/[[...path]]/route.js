@@ -12,7 +12,9 @@ import {
   sendProjectBlockedEmail,
   sendProjectUnblockedEmail,
   sendRestorationApprovedEmail,
-  sendRestorationRejectedEmail
+  sendRestorationRejectedEmail,
+  sendProjectExpiredEmail,
+  sendProjectExtendedEmail
 } from '@/lib/email'
 import { sendProjectApprovedNotification } from '@/lib/discord'
 
@@ -269,6 +271,7 @@ async function handleRoute(request, { params }) {
         .from('project_requests')
         .select('*')
         .eq('status', 'approved')
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -279,7 +282,14 @@ async function handleRoute(request, { params }) {
         ))
       }
 
-      return handleCORS(NextResponse.json(data))
+      // Additional filter for expiration date (double check)
+      const now = new Date()
+      const activeProjects = data.filter(project => {
+        if (!project.expiration_date) return true // No expiration set
+        return new Date(project.expiration_date) > now
+      })
+
+      return handleCORS(NextResponse.json(activeProjects))
     }
 
     // Get user's own project requests - GET /api/my-projects?email=xxx
@@ -367,10 +377,28 @@ async function handleRoute(request, { params }) {
         ))
       }
 
+      // Prepare update data
+      const updateData = { status: body.status }
+
+      // If approving for the first time, set expiration fields
+      if (body.status === 'approved' && currentData.status !== 'approved') {
+        // Random duration between 1-12 months
+        const durationMonths = Math.floor(Math.random() * 12) + 1
+        const approvalDate = new Date()
+        const expirationDate = new Date()
+        expirationDate.setMonth(expirationDate.getMonth() + durationMonths)
+
+        updateData.approval_date = approvalDate.toISOString()
+        updateData.expiration_date = expirationDate.toISOString()
+        updateData.duration_months = durationMonths
+        updateData.extension_count = 0
+        updateData.is_active = true
+      }
+
       // Update status
       const { data, error } = await supabase
         .from('project_requests')
-        .update({ status: body.status })
+        .update(updateData)
         .eq('id', requestId)
         .select()
         .single()
@@ -765,6 +793,158 @@ async function handleRoute(request, { params }) {
       )
 
       return handleCORS(NextResponse.json(data))
+    }
+
+    // Extend project - POST /api/project-requests/:id/extend
+    const extendProjectMatch = route.match(/^\/project-requests\/(.+)\/extend$/)
+    if (extendProjectMatch && method === 'POST') {
+      const requestId = extendProjectMatch[1]
+      const body = await request.json()
+      const supabase = getSupabaseClient()
+
+      if (!body.email) {
+        return handleCORS(NextResponse.json(
+          { error: "E-Mail ist erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .eq('email', body.email)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden oder keine Berechtigung" }, 
+          { status: 404 }
+        ))
+      }
+
+      // Check if max extensions reached
+      const extensionCount = currentData.extension_count || 0
+      if (extensionCount >= 3) {
+        return handleCORS(NextResponse.json(
+          { error: "Maximale Anzahl an Verlängerungen erreicht (3/3)" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Calculate new expiration date (same duration as original)
+      const durationMonths = currentData.duration_months || 1
+      const newExpirationDate = new Date()
+      newExpirationDate.setMonth(newExpirationDate.getMonth() + durationMonths)
+
+      // Update project
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ 
+          expiration_date: newExpirationDate.toISOString(),
+          extension_count: extensionCount + 1,
+          is_active: true,
+          status: 'approved'
+        })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Verlängern des Projekts" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send extension confirmation email
+      try {
+        await sendProjectExtendedEmail(
+          currentData.email,
+          currentData.project_name,
+          newExpirationDate.toISOString(),
+          extensionCount + 1
+        )
+      } catch (emailError) {
+        console.error('Email error:', emailError)
+      }
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Check and expire projects - POST /api/projects/check-expired (Cron job endpoint)
+    if (route === '/projects/check-expired' && method === 'POST') {
+      const supabase = getSupabaseClient()
+
+      try {
+        // Get all approved and active projects
+        const { data: projects, error: fetchError } = await supabase
+          .from('project_requests')
+          .select('*')
+          .eq('status', 'approved')
+          .eq('is_active', true)
+
+        if (fetchError) {
+          console.error('Supabase fetch error:', fetchError)
+          return handleCORS(NextResponse.json(
+            { error: "Fehler beim Laden der Projekte" }, 
+            { status: 500 }
+          ))
+        }
+
+        const now = new Date()
+        const expiredProjects = []
+
+        // Check each project for expiration
+        for (const project of projects) {
+          if (project.expiration_date) {
+            const expirationDate = new Date(project.expiration_date)
+            
+            if (expirationDate <= now) {
+              // Project has expired
+              expiredProjects.push(project)
+
+              // Update project to inactive
+              await supabase
+                .from('project_requests')
+                .update({ is_active: false })
+                .eq('id', project.id)
+
+              // Send expiration email
+              try {
+                await sendProjectExpiredEmail(
+                  project.email,
+                  project.project_name,
+                  project.extension_count || 0
+                )
+                console.log(`✅ Expiration email sent for project: ${project.project_name}`)
+              } catch (emailError) {
+                console.error('Email error for project', project.id, ':', emailError)
+              }
+            }
+          }
+        }
+
+        return handleCORS(NextResponse.json({ 
+          success: true,
+          message: `Checked ${projects.length} projects, ${expiredProjects.length} expired`,
+          expired_count: expiredProjects.length,
+          expired_projects: expiredProjects.map(p => ({
+            id: p.id,
+            name: p.project_name,
+            email: p.email
+          }))
+        }))
+
+      } catch (error) {
+        console.error('Error checking expired projects:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Überprüfen der Projekte" }, 
+          { status: 500 }
+        ))
+      }
     }
 
     // Route not found
