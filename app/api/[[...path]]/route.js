@@ -14,6 +14,7 @@ import {
   sendRestorationApprovedEmail,
   sendRestorationRejectedEmail
 } from '@/lib/email'
+import { sendProjectApprovedNotification } from '@/lib/discord'
 
 // MongoDB connection
 let client
@@ -383,12 +384,27 @@ async function handleRoute(request, { params }) {
       }
 
       // Send status update email
-      await sendStatusUpdateEmail(
-        currentData.email,
-        currentData.project_name,
-        currentData.status,
-        body.status
-      )
+      try {
+        await sendStatusUpdateEmail(
+          currentData.email,
+          currentData.project_name,
+          currentData.status,
+          body.status
+        )
+      } catch (emailError) {
+        console.error('Email error:', emailError)
+      }
+
+      // Send Discord notification if project is approved
+      if (body.status === 'approved' && currentData.status !== 'approved') {
+        try {
+          await sendProjectApprovedNotification(data)
+          console.log('✅ Discord notification sent for approved project:', data.project_name)
+        } catch (discordError) {
+          console.error('Discord notification error:', discordError)
+          // Don't fail the request if Discord notification fails
+        }
+      }
 
       return handleCORS(NextResponse.json(data))
     }
