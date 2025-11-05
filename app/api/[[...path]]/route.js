@@ -3,7 +3,17 @@ import { MongoClient } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendProjectRequestConfirmation, sendStatusUpdateEmail, sendContactFormConfirmation, sendContactFormNotification } from '@/lib/email'
+import { 
+  sendProjectRequestConfirmation, 
+  sendStatusUpdateEmail, 
+  sendContactFormConfirmation, 
+  sendContactFormNotification,
+  sendRestorationRequestEmail,
+  sendProjectBlockedEmail,
+  sendProjectUnblockedEmail,
+  sendRestorationApprovedEmail,
+  sendRestorationRejectedEmail
+} from '@/lib/email'
 
 // MongoDB connection
 let client
@@ -387,6 +397,281 @@ async function handleRoute(request, { params }) {
         success: true, 
         message: "Projekt wurde erfolgreich entfernt" 
       }))
+    }
+
+    // Block project - POST /api/project-requests/:id/block
+    const blockRequestMatch = route.match(/^\/project-requests\/(.+)\/block$/)
+    if (blockRequestMatch && method === 'POST') {
+      const requestId = blockRequestMatch[1]
+      const body = await request.json()
+      const supabase = getSupabaseClient()
+
+      if (!body.reason || !body.blocked_by) {
+        return handleCORS(NextResponse.json(
+          { error: "Sperrgrund und Name des Teamlers sind erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden" }, 
+          { status: 404 }
+        ))
+      }
+
+      // Update status to 'blocked' with reason and blocker info
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ 
+          status: 'blocked',
+          block_reason: body.reason,
+          blocked_by: body.blocked_by,
+          blocked_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Sperren des Projekts" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send blocked email
+      await sendProjectBlockedEmail(
+        currentData.email,
+        currentData.project_name,
+        body.reason,
+        body.blocked_by
+      )
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Unblock project - POST /api/project-requests/:id/unblock
+    const unblockRequestMatch = route.match(/^\/project-requests\/(.+)\/unblock$/)
+    if (unblockRequestMatch && method === 'POST') {
+      const requestId = unblockRequestMatch[1]
+      const supabase = getSupabaseClient()
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden" }, 
+          { status: 404 }
+        ))
+      }
+
+      // Update status to 'approved' and clear block info
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ 
+          status: 'approved',
+          block_reason: null,
+          blocked_by: null,
+          blocked_at: null
+        })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Entsperren des Projekts" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send unblocked email
+      await sendProjectUnblockedEmail(
+        currentData.email,
+        currentData.project_name
+      )
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Request restoration - POST /api/project-requests/:id/request-restoration
+    const requestRestorationMatch = route.match(/^\/project-requests\/(.+)\/request-restoration$/)
+    if (requestRestorationMatch && method === 'POST') {
+      const requestId = requestRestorationMatch[1]
+      const body = await request.json()
+      const supabase = getSupabaseClient()
+
+      if (!body.email) {
+        return handleCORS(NextResponse.json(
+          { error: "E-Mail ist erforderlich" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .eq('email', body.email)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden oder keine Berechtigung" }, 
+          { status: 404 }
+        ))
+      }
+
+      if (currentData.status !== 'removed') {
+        return handleCORS(NextResponse.json(
+          { error: "Nur entfernte Projekte können wiederhergestellt werden" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Update status to 'restoration_requested'
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ status: 'restoration_requested' })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Beantragen der Wiederherstellung" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send restoration request email
+      await sendRestorationRequestEmail(
+        currentData.email,
+        currentData.project_name
+      )
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Approve restoration - POST /api/project-requests/:id/approve-restoration
+    const approveRestorationMatch = route.match(/^\/project-requests\/(.+)\/approve-restoration$/)
+    if (approveRestorationMatch && method === 'POST') {
+      const requestId = approveRestorationMatch[1]
+      const supabase = getSupabaseClient()
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden" }, 
+          { status: 404 }
+        ))
+      }
+
+      if (currentData.status !== 'restoration_requested') {
+        return handleCORS(NextResponse.json(
+          { error: "Keine Wiederherstellungsanfrage vorhanden" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Update status to 'approved'
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ status: 'approved' })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Genehmigen der Wiederherstellung" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send restoration approved email
+      await sendRestorationApprovedEmail(
+        currentData.email,
+        currentData.project_name
+      )
+
+      return handleCORS(NextResponse.json(data))
+    }
+
+    // Reject restoration - POST /api/project-requests/:id/reject-restoration
+    const rejectRestorationMatch = route.match(/^\/project-requests\/(.+)\/reject-restoration$/)
+    if (rejectRestorationMatch && method === 'POST') {
+      const requestId = rejectRestorationMatch[1]
+      const supabase = getSupabaseClient()
+
+      // Get current request data first
+      const { data: currentData, error: fetchError } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single()
+
+      if (fetchError || !currentData) {
+        return handleCORS(NextResponse.json(
+          { error: "Anfrage nicht gefunden" }, 
+          { status: 404 }
+        ))
+      }
+
+      if (currentData.status !== 'restoration_requested') {
+        return handleCORS(NextResponse.json(
+          { error: "Keine Wiederherstellungsanfrage vorhanden" }, 
+          { status: 400 }
+        ))
+      }
+
+      // Update status back to 'removed'
+      const { data, error } = await supabase
+        .from('project_requests')
+        .update({ status: 'removed' })
+        .eq('id', requestId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Ablehnen der Wiederherstellung" }, 
+          { status: 500 }
+        ))
+      }
+
+      // Send restoration rejected email
+      await sendRestorationRejectedEmail(
+        currentData.email,
+        currentData.project_name
+      )
+
+      return handleCORS(NextResponse.json(data))
     }
 
     // Route not found
