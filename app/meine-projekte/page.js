@@ -16,6 +16,9 @@ export default function MeineProjektePage() {
   const [removingId, setRemovingId] = useState(null)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [projectToRemove, setProjectToRemove] = useState(null)
+  const [restoringId, setRestoringId] = useState(null)
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
+  const [projectToRestore, setProjectToRestore] = useState(null)
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [headerRef, headerVisible] = useScrollAnimation({ threshold: 0.2 })
@@ -94,6 +97,47 @@ export default function MeineProjektePage() {
     setProjectToRemove(null)
   }
 
+  const handleRestoreClick = (project) => {
+    setProjectToRestore(project)
+    setShowRestoreDialog(true)
+  }
+
+  const confirmRestore = async () => {
+    if (!projectToRestore) return
+
+    setRestoringId(projectToRestore.id)
+    setShowRestoreDialog(false)
+    
+    try {
+      const response = await fetch(`/api/project-requests/${projectToRestore.id}/request-restoration`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: user.email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Fehler beim Beantragen der Wiederherstellung')
+      }
+
+      // Reload projects after successful restoration request
+      await loadMyProjects()
+      setProjectToRestore(null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  const cancelRestore = () => {
+    setShowRestoreDialog(false)
+    setProjectToRestore(null)
+  }
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pending':
@@ -104,6 +148,12 @@ export default function MeineProjektePage() {
         return <CheckCircle className="w-4 h-4 text-green-400" />
       case 'Abgelehnt':
         return <XCircle className="w-4 h-4 text-red-400" />
+      case 'removed':
+        return <Trash2 className="w-4 h-4 text-gray-400" />
+      case 'restoration_requested':
+        return <RefreshCw className="w-4 h-4 text-purple-400" />
+      case 'blocked':
+        return <AlertTriangle className="w-4 h-4 text-orange-400" />
       default:
         return <Clock className="w-4 h-4 text-gray-400" />
     }
@@ -119,6 +169,12 @@ export default function MeineProjektePage() {
         return 'text-green-400 bg-green-500/10 border-green-500/20'
       case 'Abgelehnt':
         return 'text-red-400 bg-red-500/10 border-red-500/20'
+      case 'removed':
+        return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+      case 'restoration_requested':
+        return 'text-purple-400 bg-purple-500/10 border-purple-500/20'
+      case 'blocked':
+        return 'text-orange-400 bg-orange-500/10 border-orange-500/20'
       default:
         return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
     }
@@ -134,6 +190,12 @@ export default function MeineProjektePage() {
         return 'Angenommen'
       case 'Abgelehnt':
         return 'Abgelehnt'
+      case 'removed':
+        return 'Entfernt'
+      case 'restoration_requested':
+        return 'Wiederherstellung beantragt'
+      case 'blocked':
+        return 'Gesperrt'
       default:
         return status
     }
@@ -313,22 +375,79 @@ export default function MeineProjektePage() {
                           </p>
                         </div>
                       )}
+
+                      {project.status === 'removed' && (
+                        <div className="bg-gray-500/10 border border-gray-500/20 rounded-lg p-4">
+                          <p className="text-gray-300 text-sm">
+                            <AlertCircle className="w-4 h-4 inline mr-2" />
+                            Dieses Projekt wurde entfernt und ist nicht mehr öffentlich sichtbar.
+                          </p>
+                        </div>
+                      )}
+
+                      {project.status === 'restoration_requested' && (
+                        <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+                          <p className="text-purple-300 text-sm">
+                            <RefreshCw className="w-4 h-4 inline mr-2" />
+                            Ihr Wiederherstellungsantrag wird geprüft. Sie erhalten eine E-Mail sobald entschieden wurde.
+                          </p>
+                        </div>
+                      )}
+
+                      {project.status === 'blocked' && (
+                        <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
+                          <div className="space-y-2">
+                            <p className="text-orange-300 text-sm font-semibold">
+                              <AlertTriangle className="w-4 h-4 inline mr-2" />
+                              Dieses Projekt wurde gesperrt.
+                            </p>
+                            {project.block_reason && (
+                              <div className="mt-2 pt-2 border-t border-orange-500/20">
+                                <p className="text-gray-400 text-xs mb-1">Grund:</p>
+                                <p className="text-orange-200 text-sm">{project.block_reason}</p>
+                              </div>
+                            )}
+                            {project.blocked_by && (
+                              <p className="text-gray-400 text-xs mt-2">
+                                Gesperrt von: {project.blocked_by}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Action Button */}
+                    {/* Action Buttons */}
                     <div className="flex lg:flex-col gap-2 min-w-[200px]">
-                      <Button
-                        onClick={() => handleRemoveClick(project)}
-                        disabled={removingId === project.id}
-                        className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {removingId === project.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <Trash2 className="w-4 h-4 mr-2" />
-                        )}
-                        Projekt entfernen
-                      </Button>
+                      {project.status === 'removed' && (
+                        <Button
+                          onClick={() => handleRestoreClick(project)}
+                          disabled={restoringId === project.id}
+                          className="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {restoringId === project.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                          )}
+                          Wiederherstellung beantragen
+                        </Button>
+                      )}
+                      
+                      {project.status !== 'removed' && project.status !== 'restoration_requested' && project.status !== 'blocked' && (
+                        <Button
+                          onClick={() => handleRemoveClick(project)}
+                          disabled={removingId === project.id}
+                          className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {removingId === project.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Trash2 className="w-4 h-4 mr-2" />
+                          )}
+                          Projekt entfernen
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -338,7 +457,7 @@ export default function MeineProjektePage() {
         </div>
       </section>
 
-      {/* Confirmation Dialog */}
+      {/* Remove Confirmation Dialog */}
       {showConfirmDialog && projectToRemove && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="bg-slate-900 border-red-500/30 max-w-md w-full p-6 animate-fade-in-up">
@@ -377,6 +496,51 @@ export default function MeineProjektePage() {
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white"
               >
                 Ja, entfernen
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Restore Confirmation Dialog */}
+      {showRestoreDialog && projectToRestore && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="bg-slate-900 border-purple-500/30 max-w-md w-full p-6 animate-fade-in-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-purple-500/20 rounded-full">
+                <RefreshCw className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Wiederherstellung beantragen?</h3>
+            </div>
+            
+            <p className="text-gray-300 mb-4">
+              Möchten Sie die Wiederherstellung des Projekts <strong className="text-white">"{projectToRestore.project_name}"</strong> beantragen?
+            </p>
+            
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
+              <p className="text-purple-300 text-sm font-semibold mb-2">
+                ℹ️ Hinweise:
+              </p>
+              <ul className="text-purple-300 text-sm space-y-1 list-disc list-inside">
+                <li>Ihr Antrag wird vom Team geprüft</li>
+                <li>Sie erhalten eine E-Mail-Benachrichtigung über die Entscheidung</li>
+                <li>Die Bearbeitungszeit beträgt in der Regel 3-7 Tage</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={cancelRestore}
+                variant="outline"
+                className="flex-1 border-gray-500 text-white hover:bg-gray-500/20"
+              >
+                Abbrechen
+              </Button>
+              <Button
+                onClick={confirmRestore}
+                className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                Ja, beantragen
               </Button>
             </div>
           </Card>
