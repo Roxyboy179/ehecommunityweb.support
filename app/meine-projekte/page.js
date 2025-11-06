@@ -185,7 +185,12 @@ export default function MeineProjektePage() {
     return extensionCount < 3 && (project.status === 'approved' && !project.is_active)
   }
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status, project = null) => {
+    // Check if project is expired
+    if (project && status === 'approved' && project.is_active === false) {
+      return <TimerReset className="w-5 h-5 text-orange-400" />
+    }
+    
     switch (status) {
       case 'pending':
         return <Clock className="w-5 h-5 text-yellow-400" />
@@ -206,7 +211,12 @@ export default function MeineProjektePage() {
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status, project = null) => {
+    // Check if project is expired
+    if (project && status === 'approved' && project.is_active === false) {
+      return 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+    }
+    
     switch (status) {
       case 'pending':
         return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
@@ -227,7 +237,12 @@ export default function MeineProjektePage() {
     }
   }
   
-  const getStatusLabel = (status) => {
+  const getStatusLabel = (status, project = null) => {
+    // Check if project is expired
+    if (project && status === 'approved' && project.is_active === false) {
+      return 'Abgelaufen'
+    }
+    
     switch (status) {
       case 'pending':
         return 'Ausstehend'
@@ -248,7 +263,12 @@ export default function MeineProjektePage() {
     }
   }
 
-  const getStatusDescription = (status) => {
+  const getStatusDescription = (status, project = null) => {
+    // Check if project is expired
+    if (project && status === 'approved' && project.is_active === false) {
+      return 'Ihr Projekt ist abgelaufen und wird nicht mehr öffentlich angezeigt.'
+    }
+    
     switch (status) {
       case 'pending':
         return 'Ihre Anfrage wird geprüft. Das Team wird sich zeitnah bei Ihnen melden.'
@@ -425,9 +445,9 @@ export default function MeineProjektePage() {
                                 </div>
                               </div>
                             </div>
-                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold ${getStatusColor(project.status)}`}>
-                              {getStatusIcon(project.status)}
-                              <span>{getStatusLabel(project.status)}</span>
+                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-semibold ${getStatusColor(project.status, project)}`}>
+                              {getStatusIcon(project.status, project)}
+                              <span>{getStatusLabel(project.status, project)}</span>
                             </div>
                           </div>
 
@@ -435,12 +455,12 @@ export default function MeineProjektePage() {
                           <Card className="bg-slate-800/30 border-blue-500/10 p-5">
                             <div className="flex items-start gap-4">
                               <div className="p-3 bg-blue-500/10 rounded-lg">
-                                {getStatusIcon(project.status)}
+                                {getStatusIcon(project.status, project)}
                               </div>
                               <div className="flex-1">
                                 <h4 className="text-white font-semibold mb-2">Aktueller Status</h4>
                                 <p className="text-gray-300 text-sm mb-3">
-                                  {getStatusDescription(project.status)}
+                                  {getStatusDescription(project.status, project)}
                                 </p>
                                 {(project.status === 'pending' || project.status === 'In Bearbeitung' || project.status === 'restoration_requested') && (
                                   <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -719,6 +739,7 @@ export default function MeineProjektePage() {
                               {project.status !== 'pending' && (
                                 <div className="flex items-start gap-3">
                                   <div className={`p-2 rounded-full ${
+                                    (project.status === 'approved' && project.is_active === false) ? 'bg-orange-500/10' :
                                     project.status === 'approved' ? 'bg-green-500/10' :
                                     project.status === 'Abgelehnt' ? 'bg-red-500/10' :
                                     project.status === 'In Bearbeitung' ? 'bg-blue-500/10' :
@@ -727,10 +748,10 @@ export default function MeineProjektePage() {
                                     project.status === 'restoration_requested' ? 'bg-purple-500/10' :
                                     'bg-gray-500/10'
                                   }`}>
-                                    {getStatusIcon(project.status)}
+                                    {getStatusIcon(project.status, project)}
                                   </div>
                                   <div>
-                                    <p className="text-sm font-semibold text-white">Status aktualisiert: {getStatusLabel(project.status)}</p>
+                                    <p className="text-sm font-semibold text-white">Status aktualisiert: {getStatusLabel(project.status, project)}</p>
                                     <p className="text-xs text-gray-400">Aktueller Status</p>
                                   </div>
                                 </div>
