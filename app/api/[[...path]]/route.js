@@ -267,11 +267,11 @@ async function handleRoute(request, { params }) {
     if (route === '/projects/approved' && method === 'GET') {
       const supabase = getSupabaseClient()
       
+      // Get all approved projects (including potentially expired ones)
       const { data, error } = await supabase
         .from('project_requests')
         .select('*')
         .eq('status', 'approved')
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -282,12 +282,32 @@ async function handleRoute(request, { params }) {
         ))
       }
 
-      // Additional filter for expiration date (double check)
+      // Check for expired projects and update them
       const now = new Date()
-      const activeProjects = data.filter(project => {
-        if (!project.expiration_date) return true // No expiration set
-        return new Date(project.expiration_date) > now
-      })
+      const activeProjects = []
+      
+      for (const project of data) {
+        if (project.is_active && project.expiration_date) {
+          const expirationDate = new Date(project.expiration_date)
+          
+          if (expirationDate <= now) {
+            // Project has expired, update it
+            await supabase
+              .from('project_requests')
+              .update({ is_active: false })
+              .eq('id', project.id)
+            
+            // Don't include in active projects
+            console.log(`⏰ Project expired: ${project.project_name}`)
+            continue
+          }
+        }
+        
+        // Only include active projects
+        if (project.is_active) {
+          activeProjects.push(project)
+        }
+      }
 
       return handleCORS(NextResponse.json(activeProjects))
     }
@@ -317,6 +337,39 @@ async function handleRoute(request, { params }) {
           { error: "Fehler beim Laden der Projekte" }, 
           { status: 500 }
         ))
+      }
+
+      // Check for expired projects and update them
+      const now = new Date()
+      for (const project of data) {
+        if (project.status === 'approved' && 
+            project.is_active && 
+            project.expiration_date) {
+          const expirationDate = new Date(project.expiration_date)
+          
+          if (expirationDate <= now) {
+            // Project has expired, update it
+            await supabase
+              .from('project_requests')
+              .update({ is_active: false })
+              .eq('id', project.id)
+            
+            // Update the data object to reflect the change
+            project.is_active = false
+            
+            // Send expiration email
+            try {
+              await sendProjectExpiredEmail(
+                project.email,
+                project.project_name,
+                project.extension_count || 0
+              )
+              console.log(`✅ Project expired and email sent: ${project.project_name}`)
+            } catch (emailError) {
+              console.error('Email error for project', project.id, ':', emailError)
+            }
+          }
+        }
       }
 
       // Merge with block details from MongoDB
