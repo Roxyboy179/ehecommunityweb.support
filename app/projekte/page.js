@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Globe, ArrowRight, Loader2, Calendar, Tag, Mail } from 'lucide-react'
 import { useScrollAnimation } from '@/hooks/useScrollAnimation'
+import { formatDateShort } from '@/lib/utils'
 
 export default function ProjektePage() {
   const [projects, setProjects] = useState([])
@@ -58,12 +59,7 @@ export default function ProjektePage() {
   }
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('de-DE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    return formatDateShort(dateString)
   }
 
   const getProjectTypeLabel = (type) => {
