@@ -40,6 +40,85 @@ function getSupabaseClient() {
   )
 }
 
+// Helper function to get current time in EU timezone (Europe/Berlin)
+function getEUTimestamp() {
+  // Create date in EU timezone
+  const date = new Date()
+  
+  // Convert to EU timezone string
+  const euDateString = date.toLocaleString('en-US', { 
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  
+  // Parse the EU date string and convert to ISO format
+  const [datePart, timePart] = euDateString.split(', ')
+  const [month, day, year] = datePart.split('/')
+  const [hour, minute, second] = timePart.split(':')
+  
+  // Create ISO string in EU timezone format
+  const euDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
+  return euDate.toISOString()
+}
+
+// Helper function to add months to a date in EU timezone
+function addMonthsEU(months) {
+  const date = new Date()
+  
+  // Get EU timezone date
+  const euDateString = date.toLocaleString('en-US', { 
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  
+  const [datePart, timePart] = euDateString.split(', ')
+  const [month, day, year] = datePart.split('/')
+  const [hour, minute, second] = timePart.split(':')
+  
+  const euDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
+  euDate.setMonth(euDate.getMonth() + months)
+  
+  return euDate.toISOString()
+}
+
+// Helper function to add minutes to current time in EU timezone
+function addMinutesEU(minutes) {
+  const date = new Date()
+  
+  // Get EU timezone date
+  const euDateString = date.toLocaleString('en-US', { 
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  
+  const [datePart, timePart] = euDateString.split(', ')
+  const [month, day, year] = datePart.split('/')
+  const [hour, minutePart, second] = timePart.split(':')
+  
+  const euDate = new Date(`${year}-${month}-${day}T${hour}:${minutePart}:${second}`)
+  euDate.setMinutes(euDate.getMinutes() + minutes)
+  
+  return euDate.toISOString()
+}
+
 // Helper function to check content for bad words
 function checkContentForBadWords(project) {
   // Liste der Schimpfwörter und unangemessenen Inhalte (Deutsch)
@@ -152,9 +231,8 @@ async function scheduleAIReview(project, supabase) {
     // Random processing time between 10-60 minutes
     const processingTimeMinutes = Math.floor(Math.random() * 51) + 10 // 10-60 minutes
     
-    // Calculate completion time
-    const completionTime = new Date()
-    completionTime.setMinutes(completionTime.getMinutes() + processingTimeMinutes)
+    // Calculate completion time in EU timezone
+    const completionTime = addMinutesEU(processingTimeMinutes)
     
     const reviewId = uuidv4()
     const pendingReview = {
@@ -164,8 +242,8 @@ async function scheduleAIReview(project, supabase) {
       review_type: 'ai',
       status: 'processing',
       processing_time_minutes: processingTimeMinutes,
-      scheduled_completion_time: completionTime.toISOString(),
-      created_at: new Date().toISOString()
+      scheduled_completion_time: completionTime,
+      created_at: getEUTimestamp()
     }
     
     // Store pending review in Supabase
@@ -183,7 +261,7 @@ async function scheduleAIReview(project, supabase) {
     return {
       reviewId,
       processingTimeMinutes,
-      completionTime: completionTime.toISOString()
+      completionTime: completionTime
     }
   } catch (error) {
     console.error('Error in scheduleAIReview:', error)
@@ -196,14 +274,14 @@ async function processPendingAIReviews() {
   const supabase = getSupabaseClient()
   
   try {
-    const now = new Date()
+    const now = getEUTimestamp()
     
     // Get all pending reviews that should be completed by now
     const { data: pendingReviews, error: fetchError } = await supabase
       .from('restoration_reviews')
       .select('*')
       .eq('status', 'processing')
-      .lte('scheduled_completion_time', now.toISOString())
+      .lte('scheduled_completion_time', now)
     
     if (fetchError) {
       console.error('Error fetching pending reviews:', fetchError)
@@ -248,7 +326,7 @@ async function processPendingAIReviews() {
             ? 'Das Projekt erfüllt die Anforderungen für eine Wiederherstellung. Keine unangemessenen Inhalte gefunden.'
             : `Das Projekt enthält unangemessene Inhalte und kann nicht wiederhergestellt werden. Gefundene Verstöße: ${checkResult.allBadWords.join(', ')}`,
           confidence_score: 100,
-          reviewed_at: new Date().toISOString()
+          reviewed_at: getEUTimestamp()
         }
         
         // Update review in Supabase
@@ -271,12 +349,10 @@ async function processPendingAIReviews() {
         // If approved, reactivate project
         if (checkResult.shouldApprove) {
           const durationMonths = project.duration_months || 12
-          const expirationDate = new Date()
-          expirationDate.setMonth(expirationDate.getMonth() + durationMonths)
           
           projectUpdate.is_active = true
-          projectUpdate.expiration_date = expirationDate.toISOString()
-          projectUpdate.approval_date = new Date().toISOString()
+          projectUpdate.expiration_date = addMonthsEU(durationMonths)
+          projectUpdate.approval_date = getEUTimestamp()
         }
         
         const { error: projectUpdateError } = await supabase
@@ -346,14 +422,15 @@ async function checkAndUpdatePendingProjects() {
       return { updated: 0, errors: [] }
     }
     
-    const now = new Date()
+    // Get current time in EU timezone for comparison
+    const nowEU = new Date(getEUTimestamp())
     const updatedProjects = []
     const errors = []
     
     // Check each pending project
     for (const project of pendingProjects) {
       const createdAt = new Date(project.created_at)
-      const timeDiff = now - createdAt
+      const timeDiff = nowEU - createdAt
       const minutesDiff = timeDiff / (1000 * 60) // Convert to minutes
       
       // If project is older than 10 minutes, update to in_progress
@@ -446,7 +523,7 @@ async function handleRoute(request, { params }) {
       const statusObj = {
         id: uuidv4(),
         client_name: body.client_name,
-        timestamp: new Date()
+        timestamp: getEUTimestamp()
       }
 
       await db.collection('status_checks').insertOne(statusObj)
@@ -485,7 +562,7 @@ async function handleRoute(request, { params }) {
         email: body.email,
         subject: body.subject,
         message: body.message,
-        timestamp: new Date(),
+        timestamp: getEUTimestamp(),
         status: 'new'
       }
 
@@ -647,14 +724,14 @@ async function handleRoute(request, { params }) {
       }
 
       // Check for expired projects and update them
-      const now = new Date()
+      const nowEU = new Date(getEUTimestamp())
       const activeProjects = []
       
       for (const project of data) {
         if (project.is_active && project.expiration_date) {
           const expirationDate = new Date(project.expiration_date)
           
-          if (expirationDate <= now) {
+          if (expirationDate <= nowEU) {
             // Project has expired, update it
             await supabase
               .from('project_requests')
@@ -704,14 +781,14 @@ async function handleRoute(request, { params }) {
       }
 
       // Check for expired projects and update them
-      const now = new Date()
+      const nowEU = new Date(getEUTimestamp())
       for (const project of data) {
         if (project.status === 'approved' && 
             project.is_active && 
             project.expiration_date) {
           const expirationDate = new Date(project.expiration_date)
           
-          if (expirationDate <= now) {
+          if (expirationDate <= nowEU) {
             // Project has expired, update it
             await supabase
               .from('project_requests')
@@ -801,12 +878,9 @@ async function handleRoute(request, { params }) {
       if (body.status === 'approved' && currentData.status !== 'approved') {
         // Random duration between 1-12 months
         const durationMonths = Math.floor(Math.random() * 12) + 1
-        const approvalDate = new Date()
-        const expirationDate = new Date()
-        expirationDate.setMonth(expirationDate.getMonth() + durationMonths)
 
-        updateData.approval_date = approvalDate.toISOString()
-        updateData.expiration_date = expirationDate.toISOString()
+        updateData.approval_date = getEUTimestamp()
+        updateData.expiration_date = addMonthsEU(durationMonths)
         updateData.duration_months = durationMonths
         updateData.extension_count = 0
         updateData.is_active = true
@@ -964,7 +1038,7 @@ async function handleRoute(request, { params }) {
           project_name: currentData.project_name,
           block_reason: body.reason,
           blocked_by: body.blocked_by,
-          blocked_at: new Date(),
+          blocked_at: getEUTimestamp(),
           email: currentData.email
         })
       } catch (mongoError) {
@@ -1161,7 +1235,7 @@ async function handleRoute(request, { params }) {
             project_name: currentData.project_name,
             email: currentData.email,
             review_type: actualReviewType,
-            requested_at: new Date().toISOString(),
+            requested_at: getEUTimestamp(),
             status: finalStatus,
             review_result: reviewResult ? {
               approved: reviewResult.approved,
@@ -1433,14 +1507,13 @@ async function handleRoute(request, { params }) {
 
       // Calculate new expiration date (same duration as original)
       const durationMonths = currentData.duration_months || 1
-      const newExpirationDate = new Date()
-      newExpirationDate.setMonth(newExpirationDate.getMonth() + durationMonths)
+      const newExpirationDate = addMonthsEU(durationMonths)
 
       // Update project
       const { data, error } = await supabase
         .from('project_requests')
         .update({ 
-          expiration_date: newExpirationDate.toISOString(),
+          expiration_date: newExpirationDate,
           extension_count: extensionCount + 1,
           is_active: true,
           status: 'approved'
@@ -1462,7 +1535,7 @@ async function handleRoute(request, { params }) {
         await sendProjectExtendedEmail(
           currentData.email,
           currentData.project_name,
-          newExpirationDate.toISOString(),
+          newExpirationDate,
           extensionCount + 1
         )
       } catch (emailError) {
@@ -1517,7 +1590,7 @@ async function handleRoute(request, { params }) {
           ))
         }
 
-        const now = new Date()
+        const nowEU = new Date(getEUTimestamp())
         const expiredProjects = []
 
         // Check each project for expiration
@@ -1525,7 +1598,7 @@ async function handleRoute(request, { params }) {
           if (project.expiration_date) {
             const expirationDate = new Date(project.expiration_date)
             
-            if (expirationDate <= now) {
+            if (expirationDate <= nowEU) {
               // Project has expired
               expiredProjects.push(project)
 
