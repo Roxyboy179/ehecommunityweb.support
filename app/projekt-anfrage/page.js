@@ -5,7 +5,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Mail, FileText, Type, Globe, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Mail, FileText, Type, Globe, AlertCircle, CheckCircle, Loader2, Info, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ProjektAnfragePage() {
@@ -16,6 +24,7 @@ export default function ProjektAnfragePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showInfoDialog, setShowInfoDialog] = useState(true) // Always show on page load
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
@@ -24,6 +33,11 @@ export default function ProjektAnfragePage() {
       router.push('/login')
     }
   }, [user, authLoading, router])
+
+  // Show dialog on every page load
+  useEffect(() => {
+    setShowInfoDialog(true)
+  }, [])
 
   if (authLoading) {
     return (
@@ -84,6 +98,122 @@ export default function ProjektAnfragePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white py-12 px-4">
+      {/* Info Dialog - Shows on every page load */}
+      <AlertDialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <AlertDialogContent className="bg-slate-900 border-blue-500/30 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Info className="w-6 h-6 text-blue-400" />
+              </div>
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                Wichtige Informationen
+              </span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-200 space-y-4 pt-4">
+              {/* Kostenlose Projektanfragen */}
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                <h3 className="text-lg font-bold text-green-400 mb-2 flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  100% Kostenlos
+                </h3>
+                <p className="text-gray-200 text-sm leading-relaxed">
+                  Projektanfragen sind <strong>völlig kostenlos</strong>! Wir sind eine Community-Plattform, 
+                  die bestehende Projekte sichtbar macht. Es fallen keinerlei Gebühren oder versteckte Kosten an.
+                </p>
+              </div>
+
+              {/* Was wir machen */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <h3 className="text-lg font-bold text-blue-400 mb-2">Was wir machen</h3>
+                <p className="text-gray-200 text-sm leading-relaxed mb-2">
+                  <strong>Wichtig:</strong> Wir entwickeln keine Projekte! Diese Plattform dient dazu, 
+                  Community-Projekte zu präsentieren und sichtbar zu machen.
+                </p>
+                <p className="text-gray-200 text-sm leading-relaxed">
+                  Wenn Ihre Projekt-Anfrage angenommen wird, wird sie in unserer Projektübersicht 
+                  veröffentlicht und für die gesamte EHE Community zugänglich gemacht.
+                </p>
+              </div>
+
+              {/* AGB und Rechtliches */}
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                <h3 className="text-lg font-bold text-purple-400 mb-3">Rechtliche Hinweise</h3>
+                <p className="text-gray-200 text-sm leading-relaxed mb-3">
+                  Mit der Einreichung Ihrer Projekt-Anfrage akzeptieren Sie unsere rechtlichen Bedingungen:
+                </p>
+                <div className="space-y-2">
+                  <Link 
+                    href="/nutzungsbedingungen" 
+                    target="_blank"
+                    className="flex items-center gap-2 text-blue-300 hover:text-blue-200 transition-colors text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Nutzungsbedingungen
+                  </Link>
+                  <Link 
+                    href="/datenschutz" 
+                    target="_blank"
+                    className="flex items-center gap-2 text-blue-300 hover:text-blue-200 transition-colors text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Datenschutzerklärung
+                  </Link>
+                  <Link 
+                    href="/impressum" 
+                    target="_blank"
+                    className="flex items-center gap-2 text-blue-300 hover:text-blue-200 transition-colors text-sm"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Impressum
+                  </Link>
+                </div>
+              </div>
+
+              {/* Wichtige Regeln */}
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                <h3 className="text-lg font-bold text-amber-400 mb-2">Wichtige Regeln</h3>
+                <ul className="space-y-2 text-sm text-gray-200">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 mt-0.5">•</span>
+                    <span>Projekte müssen Community-relevant sein</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 mt-0.5">•</span>
+                    <span>Keine kommerziellen oder werblichen Inhalte</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 mt-0.5">•</span>
+                    <span>Respektvoller Umgang und keine beleidigenden Inhalte</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 mt-0.5">•</span>
+                    <span>Wahrheitsgemäße Angaben in der Projektbeschreibung</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 mt-0.5">•</span>
+                    <span>Keine illegalen oder rechtsverletzenden Inhalte</span>
+                  </li>
+                </ul>
+              </div>
+
+              <p className="text-xs text-gray-400 italic pt-2">
+                Durch Klicken auf "Akzeptieren" bestätigen Sie, dass Sie diese Informationen gelesen 
+                und verstanden haben.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              onClick={() => setShowInfoDialog(false)}
+              className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold"
+            >
+              Akzeptieren und fortfahren
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
