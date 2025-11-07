@@ -40,82 +40,289 @@ function getSupabaseClient() {
   )
 }
 
-// Helper function to perform AI review on a project
-async function performAIReview(project, db) {
-  try {
-    // Simulate AI processing time (random between 10-60 minutes in milliseconds)
-    const processingTime = Math.floor(Math.random() * 50) + 10 // 10-60 minutes
+// Helper function to check content for bad words
+function checkContentForBadWords(project) {
+  // Liste der Schimpfwörter und unangemessenen Inhalte (Deutsch)
+  const badWords = [
+    'scheiße', 'scheisse', 'scheiss', 'scheiß',
+    'fuck', 'ficken', 'fick',
+    'arsch', 'arschloch',
+    'idiot', 'idioten',
+    'dumm', 'dummkopf',
+    'hurensohn',
+    'wichser',
+    'piss', 'pisse',
+    'nazi', 'hitler',
+    'fotze',
+    'schwuchtel',
+    'nigger',
+    'bastard',
+    'dreck',
+    'verdammt', 'verfickt',
+    'sau', 'drecksau',
+    'kacke', 'kot',
+    'penis', 'schwanz',
+    'vagina', 'möse',
+    'sex', 'pornografie', 'porno',
+    'hure', 'nutte',
+    'blöd', 'blödmann',
+    'vollidiot',
+    'vergewaltigung',
+    'töten', 'mord',
+    'holocaust'
+  ]
+  
+  // Funktion zum Prüfen von Text auf Schimpfwörter
+  const checkForBadWords = (text) => {
+    if (!text) return { found: false, words: [] }
     
-    // Simulate AI analysis with random outcome (80% approval rate)
-    const shouldApprove = Math.random() > 0.2
+    const lowerText = text.toLowerCase()
+    const foundWords = []
     
-    // Generate review findings
-    const findings = {
-      project_quality: Math.random() > 0.3 ? 'gut' : 'verbesserungswürdig',
-      link_validity: project.project_link ? (Math.random() > 0.2 ? 'gültig' : 'ungültig') : 'nicht angegeben',
-      description_quality: project.description?.length > 50 ? 'ausreichend' : 'zu kurz',
-      compliance: Math.random() > 0.15 ? 'erfüllt' : 'teilweise erfüllt'
-    }
-    
-    // Generate problems list
-    const problems = []
-    if (findings.project_quality === 'verbesserungswürdig') {
-      problems.push('Projektqualität könnte verbessert werden')
-    }
-    if (findings.link_validity === 'ungültig') {
-      problems.push('Projektlink ist möglicherweise nicht erreichbar')
-    }
-    if (findings.description_quality === 'zu kurz') {
-      problems.push('Projektbeschreibung ist zu kurz')
-    }
-    if (findings.compliance === 'teilweise erfüllt') {
-      problems.push('Richtlinien nur teilweise erfüllt')
-    }
-    
-    // Generate recommendations
-    const recommendations = []
-    if (problems.length === 0) {
-      recommendations.push('Projekt erfüllt alle Anforderungen')
-      recommendations.push('Wiederherstellung kann durchgeführt werden')
-    } else {
-      recommendations.push('Bitte die gefundenen Probleme beheben')
-      if (shouldApprove) {
-        recommendations.push('Trotz kleiner Mängel wird das Projekt genehmigt')
-      } else {
-        recommendations.push('Projekt muss verbessert werden vor Wiederherstellung')
+    for (const badWord of badWords) {
+      // Prüfe ob das Schimpfwort im Text vorkommt (auch als Teil eines Wortes)
+      if (lowerText.includes(badWord.toLowerCase())) {
+        foundWords.push(badWord)
       }
     }
     
-    // Create review report
-    const review = {
-      id: uuidv4(),
+    return {
+      found: foundWords.length > 0,
+      words: [...new Set(foundWords)] // Entferne Duplikate
+    }
+  }
+  
+  // Prüfe Titel und Beschreibung
+  const titleCheck = checkForBadWords(project.project_name)
+  const descriptionCheck = checkForBadWords(project.description)
+  
+  // Kombiniere alle gefundenen Schimpfwörter
+  const allBadWords = [...new Set([...titleCheck.words, ...descriptionCheck.words])]
+  const hasBadWords = titleCheck.found || descriptionCheck.found
+  
+  // Entscheidung: Ablehnen wenn Schimpfwörter gefunden wurden
+  const shouldApprove = !hasBadWords
+  
+  // Generate review findings
+  const findings = {
+    title_check: titleCheck.found ? 'unangemessener Inhalt gefunden' : 'keine Probleme',
+    description_check: descriptionCheck.found ? 'unangemessener Inhalt gefunden' : 'keine Probleme',
+    content_quality: !hasBadWords ? 'angemessen' : 'unangemessen',
+    compliance: !hasBadWords ? 'erfüllt' : 'nicht erfüllt'
+  }
+  
+  // Generate problems list
+  const problems = []
+  if (titleCheck.found) {
+    problems.push(`Unangemessene Inhalte im Titel gefunden: ${titleCheck.words.join(', ')}`)
+  }
+  if (descriptionCheck.found) {
+    problems.push(`Unangemessene Inhalte in der Beschreibung gefunden: ${descriptionCheck.words.join(', ')}`)
+  }
+  if (hasBadWords) {
+    problems.push('Das Projekt enthält Inhalte, die gegen unsere Richtlinien verstoßen')
+  }
+  
+  // Generate recommendations
+  const recommendations = []
+  if (!hasBadWords) {
+    recommendations.push('Projekt erfüllt alle Anforderungen')
+    recommendations.push('Keine unangemessenen Inhalte gefunden')
+    recommendations.push('Wiederherstellung kann durchgeführt werden')
+  } else {
+    recommendations.push('Bitte entfernen Sie alle unangemessenen Inhalte aus Titel und Beschreibung')
+    recommendations.push('Projekt muss überarbeitet werden vor Wiederherstellung')
+    recommendations.push('Kontaktieren Sie den Support für weitere Informationen')
+  }
+  
+  return {
+    shouldApprove,
+    allBadWords,
+    titleCheck,
+    descriptionCheck,
+    findings,
+    problems,
+    recommendations
+  }
+}
+
+// Helper function to schedule AI review (creates pending review)
+async function scheduleAIReview(project, supabase) {
+  try {
+    // Random processing time between 10-60 minutes
+    const processingTimeMinutes = Math.floor(Math.random() * 51) + 10 // 10-60 minutes
+    
+    // Calculate completion time
+    const completionTime = new Date()
+    completionTime.setMinutes(completionTime.getMinutes() + processingTimeMinutes)
+    
+    const reviewId = uuidv4()
+    const pendingReview = {
+      id: reviewId,
       project_id: project.id,
       project_name: project.project_name,
       review_type: 'ai',
-      status: shouldApprove ? 'approved' : 'rejected',
-      processing_time_minutes: processingTime,
-      findings: findings,
-      problems: problems.length > 0 ? problems : ['Keine Probleme gefunden'],
-      recommendations: recommendations,
-      decision: shouldApprove ? 'genehmigt' : 'abgelehnt',
-      decision_reason: shouldApprove 
-        ? 'Das Projekt erfüllt die Anforderungen für eine Wiederherstellung'
-        : 'Das Projekt erfüllt derzeit nicht alle Anforderungen',
-      confidence_score: Math.floor(Math.random() * 30) + 70, // 70-100%
-      reviewed_at: new Date(),
-      created_at: new Date()
+      status: 'processing',
+      processing_time_minutes: processingTimeMinutes,
+      scheduled_completion_time: completionTime.toISOString(),
+      created_at: new Date().toISOString()
     }
     
-    // Store review in MongoDB
-    await db.collection('restoration_reviews').insertOne(review)
+    // Store pending review in Supabase
+    const { error: insertError } = await supabase
+      .from('restoration_reviews')
+      .insert([pendingReview])
+    
+    if (insertError) {
+      console.error('Error storing pending review in Supabase:', insertError)
+      throw insertError
+    }
+    
+    console.log(`📅 AI Review scheduled for ${project.project_name} - will complete in ${processingTimeMinutes} minutes`)
     
     return {
-      approved: shouldApprove,
-      review: review
+      reviewId,
+      processingTimeMinutes,
+      completionTime: completionTime.toISOString()
     }
   } catch (error) {
-    console.error('Error in performAIReview:', error)
+    console.error('Error in scheduleAIReview:', error)
     throw error
+  }
+}
+
+// Helper function to process pending AI reviews
+async function processPendingAIReviews() {
+  const supabase = getSupabaseClient()
+  
+  try {
+    const now = new Date()
+    
+    // Get all pending reviews that should be completed by now
+    const { data: pendingReviews, error: fetchError } = await supabase
+      .from('restoration_reviews')
+      .select('*')
+      .eq('status', 'processing')
+      .lte('scheduled_completion_time', now.toISOString())
+    
+    if (fetchError) {
+      console.error('Error fetching pending reviews:', fetchError)
+      return { processed: 0, errors: [] }
+    }
+    
+    if (!pendingReviews || pendingReviews.length === 0) {
+      return { processed: 0, errors: [] }
+    }
+    
+    console.log(`🔄 Processing ${pendingReviews.length} pending AI reviews...`)
+    
+    const processed = []
+    const errors = []
+    
+    for (const review of pendingReviews) {
+      try {
+        // Get project data from Supabase
+        const { data: project, error: projectError } = await supabase
+          .from('project_requests')
+          .select('*')
+          .eq('id', review.project_id)
+          .single()
+        
+        if (projectError || !project) {
+          console.error(`Project not found for review ${review.id}`)
+          errors.push({ review_id: review.id, error: 'Project not found' })
+          continue
+        }
+        
+        // Perform actual content check
+        const checkResult = checkContentForBadWords(project)
+        
+        // Update review with results
+        const updatedReview = {
+          status: checkResult.shouldApprove ? 'approved' : 'rejected',
+          findings: checkResult.findings,
+          problems: checkResult.problems.length > 0 ? checkResult.problems : ['Keine Probleme gefunden'],
+          recommendations: checkResult.recommendations,
+          decision: checkResult.shouldApprove ? 'genehmigt' : 'abgelehnt',
+          decision_reason: checkResult.shouldApprove 
+            ? 'Das Projekt erfüllt die Anforderungen für eine Wiederherstellung. Keine unangemessenen Inhalte gefunden.'
+            : `Das Projekt enthält unangemessene Inhalte und kann nicht wiederhergestellt werden. Gefundene Verstöße: ${checkResult.allBadWords.join(', ')}`,
+          confidence_score: 100,
+          reviewed_at: new Date().toISOString()
+        }
+        
+        // Update review in Supabase
+        const { error: updateError } = await supabase
+          .from('restoration_reviews')
+          .update(updatedReview)
+          .eq('id', review.id)
+        
+        if (updateError) {
+          console.error(`Error updating review ${review.id}:`, updateError)
+          errors.push({ review_id: review.id, error: updateError.message })
+          continue
+        }
+        
+        // Update project status
+        const projectUpdate = {
+          status: checkResult.shouldApprove ? 'approved' : 'removed'
+        }
+        
+        // If approved, reactivate project
+        if (checkResult.shouldApprove) {
+          const durationMonths = project.duration_months || 12
+          const expirationDate = new Date()
+          expirationDate.setMonth(expirationDate.getMonth() + durationMonths)
+          
+          projectUpdate.is_active = true
+          projectUpdate.expiration_date = expirationDate.toISOString()
+          projectUpdate.approval_date = new Date().toISOString()
+        }
+        
+        const { error: projectUpdateError } = await supabase
+          .from('project_requests')
+          .update(projectUpdate)
+          .eq('id', project.id)
+        
+        if (projectUpdateError) {
+          console.error(`Error updating project ${project.id}:`, projectUpdateError)
+          errors.push({ review_id: review.id, error: projectUpdateError.message })
+          continue
+        }
+        
+        // Send email notification
+        try {
+          const fullReview = { ...review, ...updatedReview }
+          if (checkResult.shouldApprove) {
+            await sendRestorationApprovedEmail(
+              project.email,
+              project.project_name,
+              fullReview
+            )
+          } else {
+            await sendRestorationRejectedEmail(
+              project.email,
+              project.project_name,
+              fullReview
+            )
+          }
+        } catch (emailError) {
+          console.error(`Email error for review ${review.id}:`, emailError)
+          // Don't fail if email fails
+        }
+        
+        processed.push(review.id)
+        console.log(`✅ Completed AI Review for ${project.project_name}: ${checkResult.shouldApprove ? 'APPROVED' : 'REJECTED'}`)
+      } catch (error) {
+        console.error(`Error processing review ${review.id}:`, error)
+        errors.push({ review_id: review.id, error: error.message })
+      }
+    }
+    
+    return { processed: processed.length, errors }
+  } catch (error) {
+    console.error('Error in processPendingAIReviews:', error)
+    return { processed: 0, errors: [error.message] }
   }
 }
 
@@ -887,30 +1094,32 @@ async function handleRoute(request, { params }) {
       let reviewResult = null
       let actualReviewType = body.review_type // Track the actual review type used
 
-      // If AI review is selected, perform it immediately
+      // If AI review is selected, schedule it (10-60 minutes processing time)
       if (body.review_type === 'ai') {
         try {
-          console.log(`🤖 Starting AI Review for project: ${currentData.project_name}`)
+          console.log(`🤖 Scheduling AI Review for project: ${currentData.project_name}`)
           
-          // Ensure db connection is available
-          if (!db) {
-            console.error('MongoDB connection not available, falling back to team review')
-            throw new Error('Database connection not available')
+          const scheduleResult = await scheduleAIReview(currentData, supabase)
+          
+          // Status remains as restoration_requested until review completes
+          finalStatus = 'restoration_requested'
+          
+          reviewResult = {
+            scheduled: true,
+            reviewId: scheduleResult.reviewId,
+            processingTimeMinutes: scheduleResult.processingTimeMinutes,
+            completionTime: scheduleResult.completionTime,
+            status: 'processing'
           }
           
-          reviewResult = await performAIReview(currentData, db)
-          
-          // Set final status based on AI decision
-          finalStatus = reviewResult.approved ? 'approved' : 'removed'
-          
-          console.log(`🤖 AI Review completed for ${currentData.project_name}: ${reviewResult.approved ? 'APPROVED' : 'REJECTED'}`)
+          console.log(`🤖 AI Review scheduled for ${currentData.project_name} - will complete in ${scheduleResult.processingTimeMinutes} minutes`)
         } catch (aiError) {
-          console.error('AI Review error:', aiError)
+          console.error('AI Review scheduling error:', aiError)
           console.error('Error details:', aiError.message)
           
           // IMPORTANT: Return error instead of silently falling back
           return handleCORS(NextResponse.json(
-            { error: `KI-Prüfung fehlgeschlagen: ${aiError.message}. Bitte versuchen Sie es erneut oder wählen Sie Team-Prüfung.` }, 
+            { error: `KI-Prüfung konnte nicht gestartet werden: ${aiError.message}. Bitte versuchen Sie es erneut oder wählen Sie Team-Prüfung.` }, 
             { status: 500 }
           ))
         }
@@ -949,43 +1158,44 @@ async function handleRoute(request, { params }) {
         ))
       }
 
-      // Store restoration metadata in MongoDB for tracking
+      // Store restoration metadata in Supabase for tracking (optional)
       try {
-        await db.collection('restoration_requests').insertOne({
-          project_id: requestId,
-          project_name: currentData.project_name,
-          email: currentData.email,
-          review_type: actualReviewType, // Use the actual review type
-          requested_at: new Date(),
-          status: finalStatus,
-          review_result: reviewResult ? {
-            approved: reviewResult.approved,
-            review_id: reviewResult.review.id
-          } : null
-        })
-      } catch (mongoError) {
-        console.error('MongoDB insert error for restoration tracking:', mongoError)
-        // Continue even if MongoDB tracking fails
+        const { error: trackingError } = await supabase
+          .from('restoration_requests')
+          .insert([{
+            id: uuidv4(),
+            project_id: requestId,
+            project_name: currentData.project_name,
+            email: currentData.email,
+            review_type: actualReviewType,
+            requested_at: new Date().toISOString(),
+            status: finalStatus,
+            review_result: reviewResult ? {
+              approved: reviewResult.approved,
+              review_id: reviewResult.review.id
+            } : null
+          }])
+        
+        if (trackingError) {
+          console.error('Supabase insert error for restoration tracking:', trackingError)
+          // Continue even if tracking fails
+        }
+      } catch (trackingError) {
+        console.error('Error storing restoration tracking:', trackingError)
+        // Continue even if tracking fails
       }
 
       // Send appropriate email based on review type and result
       try {
-        if (actualReviewType === 'ai' && reviewResult) {
-          // Send AI review result email with review data
-          if (reviewResult.approved) {
-            await sendRestorationApprovedEmail(
-              currentData.email,
-              currentData.project_name,
-              reviewResult.review
-            )
-          } else {
-            await sendRestorationRejectedEmail(
-              currentData.email,
-              currentData.project_name,
-              reviewResult.review
-            )
-          }
-        } else {
+        if (actualReviewType === 'ai' && reviewResult && reviewResult.scheduled) {
+          // Send email that AI review is being processed
+          await sendRestorationRequestEmail(
+            currentData.email,
+            currentData.project_name,
+            actualReviewType
+          )
+          console.log(`📧 Sent AI review processing notification to ${currentData.email}`)
+        } else if (actualReviewType === 'team') {
           // Send team review request email
           await sendRestorationRequestEmail(
             currentData.email,
@@ -1113,24 +1323,27 @@ async function handleRoute(request, { params }) {
     const getReviewMatch = route.match(/^\/restoration-reviews\/(.+)$/)
     if (getReviewMatch && method === 'GET') {
       const projectId = getReviewMatch[1]
+      const supabase = getSupabaseClient()
       
       try {
-        const review = await db.collection('restoration_reviews')
-          .findOne({ project_id: projectId }, { sort: { reviewed_at: -1 } })
+        const { data: review, error } = await supabase
+          .from('restoration_reviews')
+          .select('*')
+          .eq('project_id', projectId)
+          .order('reviewed_at', { ascending: false })
+          .limit(1)
+          .single()
         
-        if (!review) {
+        if (error || !review) {
           return handleCORS(NextResponse.json(
             { error: "Keine Prüfung gefunden" }, 
             { status: 404 }
           ))
         }
-
-        // Remove MongoDB _id field
-        const { _id, ...cleanReview } = review
         
-        return handleCORS(NextResponse.json(cleanReview))
+        return handleCORS(NextResponse.json(review))
       } catch (error) {
-        console.error('MongoDB fetch error:', error)
+        console.error('Supabase fetch error:', error)
         return handleCORS(NextResponse.json(
           { error: "Fehler beim Laden der Prüfung" }, 
           { status: 500 }
@@ -1140,21 +1353,46 @@ async function handleRoute(request, { params }) {
 
     // Get all restoration reviews - GET /api/restoration-reviews (Admin only)
     if (route === '/restoration-reviews' && method === 'GET') {
+      const supabase = getSupabaseClient()
+      
       try {
-        const reviews = await db.collection('restoration_reviews')
-          .find({})
-          .sort({ reviewed_at: -1 })
+        const { data: reviews, error } = await supabase
+          .from('restoration_reviews')
+          .select('*')
+          .order('reviewed_at', { ascending: false })
           .limit(100)
-          .toArray()
         
-        // Remove MongoDB _id field from all reviews
-        const cleanReviews = reviews.map(({ _id, ...rest }) => rest)
+        if (error) {
+          throw error
+        }
         
-        return handleCORS(NextResponse.json(cleanReviews))
+        return handleCORS(NextResponse.json(reviews || []))
       } catch (error) {
-        console.error('MongoDB fetch error:', error)
+        console.error('Supabase fetch error:', error)
         return handleCORS(NextResponse.json(
           { error: "Fehler beim Laden der Prüfungen" }, 
+          { status: 500 }
+        ))
+      }
+    }
+
+    // Process pending AI reviews - POST /api/process-pending-reviews
+    if (route === '/process-pending-reviews' && method === 'POST') {
+      try {
+        console.log('🔄 Starting to process pending AI reviews...')
+        const result = await processPendingAIReviews()
+        console.log(`✅ Processed ${result.processed} reviews, ${result.errors.length} errors`)
+        
+        return handleCORS(NextResponse.json({
+          success: true,
+          processed: result.processed,
+          errors: result.errors,
+          message: `Verarbeitet: ${result.processed} Prüfungen`
+        }))
+      } catch (error) {
+        console.error('Error processing pending reviews:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Verarbeiten der Prüfungen" }, 
           { status: 500 }
         ))
       }
