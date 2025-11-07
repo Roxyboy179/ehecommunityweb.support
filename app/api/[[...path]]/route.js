@@ -14,7 +14,8 @@ import {
   sendRestorationApprovedEmail,
   sendRestorationRejectedEmail,
   sendProjectExpiredEmail,
-  sendProjectExtendedEmail
+  sendProjectExtendedEmail,
+  sendStatusInProgressEmail
 } from '@/lib/email'
 import { sendProjectApprovedNotification } from '@/lib/discord'
 
@@ -37,6 +38,80 @@ function getSupabaseClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   )
+}
+
+// Helper function to check and update pending projects to in_progress after 10 minutes
+async function checkAndUpdatePendingProjects() {
+  const supabase = getSupabaseClient()
+  
+  try {
+    // Get all pending projects
+    const { data: pendingProjects, error: fetchError } = await supabase
+      .from('project_requests')
+      .select('*')
+      .eq('status', 'pending')
+    
+    if (fetchError) {
+      console.error('Error fetching pending projects:', fetchError)
+      return { updated: 0, errors: [] }
+    }
+    
+    if (!pendingProjects || pendingProjects.length === 0) {
+      return { updated: 0, errors: [] }
+    }
+    
+    const now = new Date()
+    const updatedProjects = []
+    const errors = []
+    
+    // Check each pending project
+    for (const project of pendingProjects) {
+      const createdAt = new Date(project.created_at)
+      const timeDiff = now - createdAt
+      const minutesDiff = timeDiff / (1000 * 60) // Convert to minutes
+      
+      // If project is older than 10 minutes, update to in_progress
+      if (minutesDiff >= 10) {
+        try {
+          // Update status to in_progress
+          const { data: updatedProject, error: updateError } = await supabase
+            .from('project_requests')
+            .update({ status: 'in_progress' })
+            .eq('id', project.id)
+            .select()
+            .single()
+          
+          if (updateError) {
+            console.error(`Error updating project ${project.id}:`, updateError)
+            errors.push({ project_id: project.id, error: updateError.message })
+            continue
+          }
+          
+          updatedProjects.push(updatedProject)
+          
+          // Send email notification
+          try {
+            await sendStatusInProgressEmail(
+              project.email,
+              project.project_name
+            )
+            console.log(`✅ Status updated and email sent for project: ${project.project_name}`)
+          } catch (emailError) {
+            console.error(`Email error for project ${project.id}:`, emailError)
+            // Don't fail the update if email fails
+          }
+        } catch (error) {
+          console.error(`Error processing project ${project.id}:`, error)
+          errors.push({ project_id: project.id, error: error.message })
+        }
+      }
+    }
+    
+    return { updated: updatedProjects.length, errors, projects: updatedProjects }
+  } catch (error) {
+    console.error('Error in checkAndUpdatePendingProjects:', error)
+    return { updated: 0, errors: [error.message] }
+  }
 }
 
 // Helper function to handle CORS
@@ -220,6 +295,9 @@ async function handleRoute(request, { params }) {
     // Get all project requests - GET /api/project-requests (Admin only)
     if (route === '/project-requests' && method === 'GET') {
       const supabase = getSupabaseClient()
+      
+      // Check and update pending projects to in_progress
+      await checkAndUpdatePendingProjects()
       
       const { data, error } = await supabase
         .from('project_requests')
@@ -925,6 +1003,31 @@ async function handleRoute(request, { params }) {
       }
 
       return handleCORS(NextResponse.json(data))
+    }
+
+    // Check and update pending projects - POST /api/projects/check-pending (Cron job endpoint)
+    if (route === '/projects/check-pending' && method === 'POST') {
+      try {
+        const result = await checkAndUpdatePendingProjects()
+        
+        return handleCORS(NextResponse.json({ 
+          success: true,
+          message: `Checked pending projects, ${result.updated} updated to in_progress`,
+          updated_count: result.updated,
+          errors: result.errors,
+          updated_projects: result.projects?.map(p => ({
+            id: p.id,
+            name: p.project_name,
+            email: p.email
+          })) || []
+        }))
+      } catch (error) {
+        console.error('Error checking pending projects:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Überprüfen der Projekte" }, 
+          { status: 500 }
+        ))
+      }
     }
 
     // Check and expire projects - POST /api/projects/check-expired (Cron job endpoint)
