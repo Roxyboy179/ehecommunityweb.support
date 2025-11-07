@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Globe, Loader2, Calendar, Tag, AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, Trash2, AlertTriangle, ExternalLink, Mail, Send, Eye, EyeOff, ChevronDown, ChevronUp, TimerReset, RotateCw } from 'lucide-react'
+import { formatDateToGermanTime } from '@/lib/utils'
 
 export default function MeineProjektePage() {
   const [projects, setProjects] = useState([])
@@ -362,14 +363,7 @@ export default function MeineProjektePage() {
   }
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('de-DE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return formatDateToGermanTime(dateString)
   }
 
   const getProjectTypeLabel = (type) => {
