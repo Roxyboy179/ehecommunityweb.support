@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Globe, Loader2, AlertCircle, CheckCircle, Clock, XCircle, RefreshCw, Search, Mail, ExternalLink, Lock, Unlock, RotateCcw, Trash2, ShieldAlert, FileText, X, Calendar, User, Filter, ChevronDown, ArrowUpDown } from 'lucide-react'
 import Link from 'next/link'
+import { formatDateShort } from '@/lib/utils'
 
 export default function AdminPage() {
   const [requests, setRequests] = useState([])
@@ -497,7 +498,7 @@ export default function AdminPage() {
                           <div className="flex items-center gap-3 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {new Date(request.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                              {formatDateShort(request.created_at)}
                             </span>
                             <span className="flex items-center gap-1">
                               <FileText className="w-3 h-3" />
