@@ -1094,61 +1094,33 @@ async function handleRoute(request, { params }) {
       let reviewResult = null
       let actualReviewType = body.review_type // Track the actual review type used
 
-      // If AI review is selected, perform it immediately
+      // If AI review is selected, schedule it (10-60 minutes processing time)
       if (body.review_type === 'ai') {
         try {
-          console.log(`🤖 Starting immediate AI Review for project: ${currentData.project_name}`)
+          console.log(`🤖 Scheduling AI Review for project: ${currentData.project_name}`)
           
-          // Perform content check immediately
-          const checkResult = checkContentForBadWords(currentData)
-          
-          // Create review record
-          const reviewId = uuidv4()
-          const reviewRecord = {
-            id: reviewId,
-            project_id: currentData.id,
-            project_name: currentData.project_name,
-            review_type: 'ai',
-            status: checkResult.shouldApprove ? 'approved' : 'rejected',
-            findings: checkResult.findings,
-            problems: checkResult.problems.length > 0 ? checkResult.problems : ['Keine Probleme gefunden'],
-            recommendations: checkResult.recommendations,
-            decision: checkResult.shouldApprove ? 'genehmigt' : 'abgelehnt',
-            decision_reason: checkResult.shouldApprove 
-              ? 'Das Projekt erfüllt die Anforderungen für eine Wiederherstellung. Keine unangemessenen Inhalte gefunden.'
-              : `Das Projekt enthält unangemessene Inhalte und kann nicht wiederhergestellt werden. Gefundene Verstöße: ${checkResult.allBadWords.join(', ')}`,
-            confidence_score: 100,
-            reviewed_at: new Date().toISOString(),
-            created_at: new Date().toISOString()
-          }
-          
-          // Store review in Supabase
-          const { error: insertError } = await supabase
-            .from('restoration_reviews')
-            .insert([reviewRecord])
-          
-          if (insertError) {
-            console.error('Error storing review in Supabase:', insertError)
-            throw insertError
-          }
-          
-          // Update final status based on review result
-          finalStatus = checkResult.shouldApprove ? 'approved' : 'removed'
+          // Schedule the AI review instead of performing it immediately
+          const scheduledReview = await scheduleAIReview(currentData, supabase)
           
           reviewResult = {
-            approved: checkResult.shouldApprove,
-            review: reviewRecord,
-            immediate: true
+            scheduled: true,
+            reviewId: scheduledReview.reviewId,
+            processingTimeMinutes: scheduledReview.processingTimeMinutes,
+            completionTime: scheduledReview.completionTime,
+            immediate: false
           }
           
-          console.log(`✅ AI Review completed for ${currentData.project_name}: ${checkResult.shouldApprove ? 'APPROVED' : 'REJECTED'}`)
+          // Keep status as restoration_requested since review is pending
+          finalStatus = 'restoration_requested'
+          
+          console.log(`📅 AI Review scheduled for ${currentData.project_name} - will complete in ${scheduledReview.processingTimeMinutes} minutes`)
         } catch (aiError) {
-          console.error('AI Review error:', aiError)
+          console.error('AI Review scheduling error:', aiError)
           console.error('Error details:', aiError.message)
           
-          // IMPORTANT: Return error instead of silently falling back
+          // Return error if scheduling fails
           return handleCORS(NextResponse.json(
-            { error: `KI-Prüfung konnte nicht durchgeführt werden: ${aiError.message}. Bitte versuchen Sie es erneut oder wählen Sie Team-Prüfung.` }, 
+            { error: `KI-Prüfung konnte nicht geplant werden: ${aiError.message}. Bitte versuchen Sie es erneut oder wählen Sie Team-Prüfung.` }, 
             { status: 500 }
           ))
         }
@@ -1159,18 +1131,8 @@ async function handleRoute(request, { params }) {
         status: finalStatus
       }
 
-      // If AI approved, reactivate the project
-      if (finalStatus === 'approved' && reviewResult && reviewResult.approved) {
-        const durationMonths = currentData.duration_months || Math.floor(Math.random() * 12) + 1
-        const expirationDate = new Date()
-        expirationDate.setMonth(expirationDate.getMonth() + durationMonths)
-        
-        updateData.is_active = true
-        updateData.expiration_date = expirationDate.toISOString()
-        updateData.approval_date = new Date().toISOString()
-        
-        console.log(`✅ Project reactivated: ${currentData.project_name} until ${expirationDate.toISOString()}`)
-      }
+      // Note: Project will be reactivated later when processPendingAIReviews completes the review
+      // No need to update project status here for AI reviews since they are scheduled
 
       // Update status
       const { data, error } = await supabase
@@ -1216,25 +1178,17 @@ async function handleRoute(request, { params }) {
         // Continue even if tracking fails
       }
 
-      // Send appropriate email based on review type and result
+      // Send appropriate email based on review type
       try {
-        if (actualReviewType === 'ai' && reviewResult) {
-          // Send appropriate email based on AI review result
-          if (reviewResult.approved) {
-            await sendRestorationApprovedEmail(
-              currentData.email,
-              currentData.project_name,
-              reviewResult.review
-            )
-            console.log(`📧 Sent AI review approval email to ${currentData.email}`)
-          } else {
-            await sendRestorationRejectedEmail(
-              currentData.email,
-              currentData.project_name,
-              reviewResult.review
-            )
-            console.log(`📧 Sent AI review rejection email to ${currentData.email}`)
-          }
+        if (actualReviewType === 'ai' && reviewResult && reviewResult.scheduled) {
+          // Send confirmation that AI review is scheduled (not the result yet)
+          await sendRestorationRequestEmail(
+            currentData.email,
+            currentData.project_name,
+            actualReviewType
+          )
+          console.log(`📧 Sent AI review scheduling confirmation to ${currentData.email}`)
+          console.log(`⏰ AI review will be completed in ${reviewResult.processingTimeMinutes} minutes`)
         } else if (actualReviewType === 'team') {
           // Send team review request email
           await sendRestorationRequestEmail(
