@@ -885,10 +885,19 @@ async function handleRoute(request, { params }) {
 
       let finalStatus = 'restoration_requested'
       let reviewResult = null
+      let actualReviewType = body.review_type // Track the actual review type used
 
       // If AI review is selected, perform it immediately
       if (body.review_type === 'ai') {
         try {
+          console.log(`🤖 Starting AI Review for project: ${currentData.project_name}`)
+          
+          // Ensure db connection is available
+          if (!db) {
+            console.error('MongoDB connection not available, falling back to team review')
+            throw new Error('Database connection not available')
+          }
+          
           reviewResult = await performAIReview(currentData, db)
           
           // Set final status based on AI decision
@@ -897,17 +906,19 @@ async function handleRoute(request, { params }) {
           console.log(`🤖 AI Review completed for ${currentData.project_name}: ${reviewResult.approved ? 'APPROVED' : 'REJECTED'}`)
         } catch (aiError) {
           console.error('AI Review error:', aiError)
-          // Fall back to manual review if AI fails
-          finalStatus = 'restoration_requested'
-          body.review_type = 'team'
+          console.error('Error details:', aiError.message)
+          
+          // IMPORTANT: Return error instead of silently falling back
+          return handleCORS(NextResponse.json(
+            { error: `KI-Prüfung fehlgeschlagen: ${aiError.message}. Bitte versuchen Sie es erneut oder wählen Sie Team-Prüfung.` }, 
+            { status: 500 }
+          ))
         }
       }
 
-      // Prepare update data
+      // Prepare update data - only include fields that exist in Supabase
       const updateData = { 
-        status: finalStatus,
-        restoration_review_type: body.review_type,
-        restoration_requested_at: new Date().toISOString()
+        status: finalStatus
       }
 
       // If AI approved, reactivate the project
@@ -931,15 +942,35 @@ async function handleRoute(request, { params }) {
 
       if (error) {
         console.error('Supabase update error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
         return handleCORS(NextResponse.json(
-          { error: "Fehler beim Beantragen der Wiederherstellung" }, 
+          { error: `Fehler beim Beantragen der Wiederherstellung: ${error.message || 'Unbekannter Fehler'}` }, 
           { status: 500 }
         ))
       }
 
+      // Store restoration metadata in MongoDB for tracking
+      try {
+        await db.collection('restoration_requests').insertOne({
+          project_id: requestId,
+          project_name: currentData.project_name,
+          email: currentData.email,
+          review_type: actualReviewType, // Use the actual review type
+          requested_at: new Date(),
+          status: finalStatus,
+          review_result: reviewResult ? {
+            approved: reviewResult.approved,
+            review_id: reviewResult.review.id
+          } : null
+        })
+      } catch (mongoError) {
+        console.error('MongoDB insert error for restoration tracking:', mongoError)
+        // Continue even if MongoDB tracking fails
+      }
+
       // Send appropriate email based on review type and result
       try {
-        if (body.review_type === 'ai' && reviewResult) {
+        if (actualReviewType === 'ai' && reviewResult) {
           // Send AI review result email with review data
           if (reviewResult.approved) {
             await sendRestorationApprovedEmail(
@@ -959,7 +990,7 @@ async function handleRoute(request, { params }) {
           await sendRestorationRequestEmail(
             currentData.email,
             currentData.project_name,
-            body.review_type
+            actualReviewType
           )
         }
       } catch (emailError) {
@@ -969,7 +1000,8 @@ async function handleRoute(request, { params }) {
 
       return handleCORS(NextResponse.json({
         ...data,
-        review_result: reviewResult
+        review_result: reviewResult,
+        actual_review_type: actualReviewType // Return the actual review type used
       }))
     }
 
