@@ -18,6 +18,9 @@ export default function MeineProjektePage() {
   const [restoringId, setRestoringId] = useState(null)
   const [showRestoreDialog, setShowRestoreDialog] = useState(false)
   const [projectToRestore, setProjectToRestore] = useState(null)
+  const [selectedReviewType, setSelectedReviewType] = useState('ai') // 'ai' or 'team'
+  const [showReviewDetails, setShowReviewDetails] = useState({})
+  const [reviewData, setReviewData] = useState({})
   const [expandedProjects, setExpandedProjects] = useState(new Set())
   const [extendingId, setExtendingId] = useState(null)
   const { user, loading: authLoading } = useAuth()
@@ -124,7 +127,10 @@ export default function MeineProjektePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: user.email }),
+        body: JSON.stringify({ 
+          email: user.email,
+          review_type: selectedReviewType 
+        }),
       })
 
       const data = await response.json()
@@ -133,12 +139,48 @@ export default function MeineProjektePage() {
         throw new Error(data.error || 'Fehler beim Beantragen der Wiederherstellung')
       }
 
+      // If AI review and review result available, store it
+      if (selectedReviewType === 'ai' && data.review_result) {
+        setReviewData(prev => ({
+          ...prev,
+          [projectToRestore.id]: data.review_result.review
+        }))
+      }
+
       await loadMyProjects()
       setProjectToRestore(null)
+      setSelectedReviewType('ai') // Reset to default
     } catch (err) {
       setError(err.message)
     } finally {
       setRestoringId(null)
+    }
+  }
+
+  const loadReviewData = async (projectId) => {
+    try {
+      const response = await fetch(`/api/restoration-reviews/${projectId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setReviewData(prev => ({
+          ...prev,
+          [projectId]: data
+        }))
+      }
+    } catch (err) {
+      console.error('Error loading review data:', err)
+    }
+  }
+
+  const toggleReviewDetails = (projectId) => {
+    setShowReviewDetails(prev => ({
+      ...prev,
+      [projectId]: !prev[projectId]
+    }))
+    
+    // Load review data if not already loaded
+    if (!reviewData[projectId]) {
+      loadReviewData(projectId)
     }
   }
 
@@ -758,6 +800,120 @@ export default function MeineProjektePage() {
                               )}
                             </div>
                           </div>
+
+                          {/* AI Review Details - Show if project has restoration_review_type */}
+                          {project.restoration_review_type === 'ai' && (
+                            <div className="p-5 bg-purple-500/5 rounded-lg border border-purple-500/20">
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-2 bg-purple-500/10 rounded-full">
+                                    <RefreshCw className="w-5 h-5 text-purple-400" />
+                                  </div>
+                                  <h5 className="text-white font-semibold">🤖 KI-Prüfungsübersicht</h5>
+                                </div>
+                                <Button
+                                  onClick={() => toggleReviewDetails(project.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                                >
+                                  {showReviewDetails[project.id] ? (
+                                    <>
+                                      <EyeOff className="w-4 h-4 mr-2" />
+                                      Ausblenden
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      Details anzeigen
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+
+                              {showReviewDetails[project.id] && reviewData[project.id] && (
+                                <div className="space-y-4 mt-4 animate-fade-in-up">
+                                  {/* Review Status */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-3 bg-slate-800/50 rounded-lg">
+                                      <p className="text-xs text-gray-400 mb-1">Prüfungsergebnis</p>
+                                      <p className={`text-sm font-bold ${reviewData[project.id].status === 'approved' ? 'text-green-400' : 'text-red-400'}`}>
+                                        {reviewData[project.id].status === 'approved' ? '✓ Genehmigt' : '✗ Abgelehnt'}
+                                      </p>
+                                    </div>
+                                    <div className="p-3 bg-slate-800/50 rounded-lg">
+                                      <p className="text-xs text-gray-400 mb-1">Vertrauenswert</p>
+                                      <p className="text-sm font-bold text-purple-400">
+                                        {reviewData[project.id].confidence_score}%
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  {/* Decision Reason */}
+                                  <div className="p-4 bg-slate-800/30 rounded-lg border border-purple-500/10">
+                                    <p className="text-xs text-gray-400 mb-2 font-semibold uppercase">Entscheidungsgrund</p>
+                                    <p className="text-gray-200 text-sm">{reviewData[project.id].decision_reason}</p>
+                                  </div>
+
+                                  {/* Problems Found */}
+                                  {reviewData[project.id].problems && reviewData[project.id].problems.length > 0 && (
+                                    <div className="p-4 bg-red-500/5 rounded-lg border border-red-500/20">
+                                      <p className="text-xs text-red-400 mb-2 font-semibold uppercase">Gefundene Probleme</p>
+                                      <ul className="space-y-1">
+                                        {reviewData[project.id].problems.map((problem, idx) => (
+                                          <li key={idx} className="text-sm text-red-300 flex items-start gap-2">
+                                            <span className="text-red-400 mt-0.5">•</span>
+                                            <span>{problem}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {/* Recommendations */}
+                                  {reviewData[project.id].recommendations && reviewData[project.id].recommendations.length > 0 && (
+                                    <div className="p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
+                                      <p className="text-xs text-blue-400 mb-2 font-semibold uppercase">Empfehlungen</p>
+                                      <ul className="space-y-1">
+                                        {reviewData[project.id].recommendations.map((rec, idx) => (
+                                          <li key={idx} className="text-sm text-blue-300 flex items-start gap-2">
+                                            <span className="text-blue-400 mt-0.5">•</span>
+                                            <span>{rec}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {/* Review Metadata */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {reviewData[project.id].processing_time_minutes && (
+                                      <div className="p-3 bg-slate-800/50 rounded-lg">
+                                        <p className="text-xs text-gray-400 mb-1">Prüfungsdauer</p>
+                                        <p className="text-sm font-bold text-purple-400">
+                                          {reviewData[project.id].processing_time_minutes} Min.
+                                        </p>
+                                      </div>
+                                    )}
+                                    {reviewData[project.id].reviewed_at && (
+                                      <div className="p-3 bg-slate-800/50 rounded-lg">
+                                        <p className="text-xs text-gray-400 mb-1">Geprüft am</p>
+                                        <p className="text-sm font-bold text-purple-400">
+                                          {formatDate(reviewData[project.id].reviewed_at)}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {showReviewDetails[project.id] && !reviewData[project.id] && (
+                                <div className="flex items-center justify-center py-4">
+                                  <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -817,26 +973,117 @@ export default function MeineProjektePage() {
       {/* Restore Confirmation Dialog */}
       {showRestoreDialog && projectToRestore && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="bg-slate-900 border-purple-500/30 max-w-md w-full p-6 animate-fade-in-up">
+          <Card className="bg-slate-900 border-purple-500/30 max-w-lg w-full p-6 animate-fade-in-up">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-purple-500/20 rounded-full">
                 <RefreshCw className="w-6 h-6 text-purple-400" />
               </div>
-              <h3 className="text-xl font-bold text-white">Wiederherstellung beantragen?</h3>
+              <h3 className="text-xl font-bold text-white">Wiederherstellung beantragen</h3>
             </div>
             
-            <p className="text-gray-300 mb-4">
+            <p className="text-gray-300 mb-6">
               Möchten Sie die Wiederherstellung des Projekts <strong className="text-white">"{projectToRestore.project_name}"</strong> beantragen?
             </p>
             
-            <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-              <p className="text-purple-300 text-sm font-semibold mb-2">
+            {/* Review Type Selection */}
+            <div className="mb-6">
+              <label className="block text-white font-semibold mb-3">Prüfungstyp wählen:</label>
+              <div className="space-y-3">
+                {/* AI Review Option */}
+                <div 
+                  onClick={() => setSelectedReviewType('ai')}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedReviewType === 'ai' 
+                      ? 'border-purple-500 bg-purple-500/10' 
+                      : 'border-gray-600 bg-slate-800/30 hover:border-purple-400'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      selectedReviewType === 'ai' 
+                        ? 'border-purple-500 bg-purple-500' 
+                        : 'border-gray-500'
+                    }`}>
+                      {selectedReviewType === 'ai' && (
+                        <div className="w-2 h-2 bg-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-white font-semibold">🤖 KI-Prüfung</span>
+                        <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full font-semibold">
+                          Schnell
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-2">
+                        Automatische Prüfung durch unsere KI mit detaillierter Übersicht
+                      </p>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Clock className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="text-purple-300 font-semibold">10-60 Minuten</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Review Option */}
+                <div 
+                  onClick={() => setSelectedReviewType('team')}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    selectedReviewType === 'team' 
+                      ? 'border-blue-500 bg-blue-500/10' 
+                      : 'border-gray-600 bg-slate-800/30 hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      selectedReviewType === 'team' 
+                        ? 'border-blue-500 bg-blue-500' 
+                        : 'border-gray-500'
+                    }`}>
+                      {selectedReviewType === 'team' && (
+                        <div className="w-2 h-2 bg-white rounded-full" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-white font-semibold">👥 Teamler-Prüfung</span>
+                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded-full font-semibold">
+                          Persönlich
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-2">
+                        Manuelle Prüfung durch unser erfahrenes Team
+                      </p>
+                      <div className="flex items-center gap-2 text-xs">
+                        <Clock className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="text-blue-300 font-semibold">3-7 Tage</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className={`${selectedReviewType === 'ai' ? 'bg-purple-500/10 border-purple-500/20' : 'bg-blue-500/10 border-blue-500/20'} border rounded-lg p-4 mb-6`}>
+              <p className={`${selectedReviewType === 'ai' ? 'text-purple-300' : 'text-blue-300'} text-sm font-semibold mb-2`}>
                 ℹ️ Hinweise:
               </p>
-              <ul className="text-purple-300 text-sm space-y-1 list-disc list-inside">
-                <li>Ihr Antrag wird vom Team geprüft</li>
-                <li>Sie erhalten eine E-Mail-Benachrichtigung über die Entscheidung</li>
-                <li>Die Bearbeitungszeit beträgt in der Regel 3-7 Tage</li>
+              <ul className={`${selectedReviewType === 'ai' ? 'text-purple-300' : 'text-blue-300'} text-sm space-y-1 list-disc list-inside`}>
+                {selectedReviewType === 'ai' ? (
+                  <>
+                    <li>KI-Prüfung erfolgt automatisch</li>
+                    <li>Sie erhalten eine detaillierte Prüfungsübersicht per E-Mail</li>
+                    <li>Entscheidung innerhalb von 10-60 Minuten</li>
+                    <li>Automatische Genehmigung oder Ablehnung</li>
+                  </>
+                ) : (
+                  <>
+                    <li>Ihr Antrag wird persönlich vom Team geprüft</li>
+                    <li>Sie erhalten eine E-Mail-Benachrichtigung über die Entscheidung</li>
+                    <li>Die Bearbeitungszeit beträgt in der Regel 3-7 Tage</li>
+                  </>
+                )}
               </ul>
             </div>
 
@@ -850,9 +1097,9 @@ export default function MeineProjektePage() {
               </Button>
               <Button
                 onClick={confirmRestore}
-                className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                className={`flex-1 ${selectedReviewType === 'ai' ? 'bg-purple-500 hover:bg-purple-600' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
               >
-                Ja, beantragen
+                Jetzt beantragen
               </Button>
             </div>
           </Card>
