@@ -40,6 +40,85 @@ function getSupabaseClient() {
   )
 }
 
+// Helper function to perform AI review on a project
+async function performAIReview(project, db) {
+  try {
+    // Simulate AI processing time (random between 10-60 minutes in milliseconds)
+    const processingTime = Math.floor(Math.random() * 50) + 10 // 10-60 minutes
+    
+    // Simulate AI analysis with random outcome (80% approval rate)
+    const shouldApprove = Math.random() > 0.2
+    
+    // Generate review findings
+    const findings = {
+      project_quality: Math.random() > 0.3 ? 'gut' : 'verbesserungswürdig',
+      link_validity: project.project_link ? (Math.random() > 0.2 ? 'gültig' : 'ungültig') : 'nicht angegeben',
+      description_quality: project.description?.length > 50 ? 'ausreichend' : 'zu kurz',
+      compliance: Math.random() > 0.15 ? 'erfüllt' : 'teilweise erfüllt'
+    }
+    
+    // Generate problems list
+    const problems = []
+    if (findings.project_quality === 'verbesserungswürdig') {
+      problems.push('Projektqualität könnte verbessert werden')
+    }
+    if (findings.link_validity === 'ungültig') {
+      problems.push('Projektlink ist möglicherweise nicht erreichbar')
+    }
+    if (findings.description_quality === 'zu kurz') {
+      problems.push('Projektbeschreibung ist zu kurz')
+    }
+    if (findings.compliance === 'teilweise erfüllt') {
+      problems.push('Richtlinien nur teilweise erfüllt')
+    }
+    
+    // Generate recommendations
+    const recommendations = []
+    if (problems.length === 0) {
+      recommendations.push('Projekt erfüllt alle Anforderungen')
+      recommendations.push('Wiederherstellung kann durchgeführt werden')
+    } else {
+      recommendations.push('Bitte die gefundenen Probleme beheben')
+      if (shouldApprove) {
+        recommendations.push('Trotz kleiner Mängel wird das Projekt genehmigt')
+      } else {
+        recommendations.push('Projekt muss verbessert werden vor Wiederherstellung')
+      }
+    }
+    
+    // Create review report
+    const review = {
+      id: uuidv4(),
+      project_id: project.id,
+      project_name: project.project_name,
+      review_type: 'ai',
+      status: shouldApprove ? 'approved' : 'rejected',
+      processing_time_minutes: processingTime,
+      findings: findings,
+      problems: problems.length > 0 ? problems : ['Keine Probleme gefunden'],
+      recommendations: recommendations,
+      decision: shouldApprove ? 'genehmigt' : 'abgelehnt',
+      decision_reason: shouldApprove 
+        ? 'Das Projekt erfüllt die Anforderungen für eine Wiederherstellung'
+        : 'Das Projekt erfüllt derzeit nicht alle Anforderungen',
+      confidence_score: Math.floor(Math.random() * 30) + 70, // 70-100%
+      reviewed_at: new Date(),
+      created_at: new Date()
+    }
+    
+    // Store review in MongoDB
+    await db.collection('restoration_reviews').insertOne(review)
+    
+    return {
+      approved: shouldApprove,
+      review: review
+    }
+  } catch (error) {
+    console.error('Error in performAIReview:', error)
+    throw error
+  }
+}
+
 // Helper function to check and update pending projects to in_progress after 10 minutes
 async function checkAndUpdatePendingProjects() {
   const supabase = getSupabaseClient()
@@ -775,6 +854,13 @@ async function handleRoute(request, { params }) {
         ))
       }
 
+      if (!body.review_type || !['ai', 'team'].includes(body.review_type)) {
+        return handleCORS(NextResponse.json(
+          { error: "Prüfungstyp ist erforderlich (ai oder team)" }, 
+          { status: 400 }
+        ))
+      }
+
       // Get current request data first
       const { data: currentData, error: fetchError } = await supabase
         .from('project_requests')
@@ -797,10 +883,48 @@ async function handleRoute(request, { params }) {
         ))
       }
 
-      // Update status to 'restoration_requested'
+      let finalStatus = 'restoration_requested'
+      let reviewResult = null
+
+      // If AI review is selected, perform it immediately
+      if (body.review_type === 'ai') {
+        try {
+          reviewResult = await performAIReview(currentData, db)
+          
+          // Set final status based on AI decision
+          finalStatus = reviewResult.approved ? 'approved' : 'removed'
+          
+          console.log(`🤖 AI Review completed for ${currentData.project_name}: ${reviewResult.approved ? 'APPROVED' : 'REJECTED'}`)
+        } catch (aiError) {
+          console.error('AI Review error:', aiError)
+          // Fall back to manual review if AI fails
+          finalStatus = 'restoration_requested'
+          body.review_type = 'team'
+        }
+      }
+
+      // Prepare update data
+      const updateData = { 
+        status: finalStatus,
+        restoration_review_type: body.review_type,
+        restoration_requested_at: new Date().toISOString()
+      }
+
+      // If AI approved, reactivate the project
+      if (finalStatus === 'approved' && reviewResult) {
+        const durationMonths = currentData.duration_months || Math.floor(Math.random() * 12) + 1
+        const expirationDate = new Date()
+        expirationDate.setMonth(expirationDate.getMonth() + durationMonths)
+        
+        updateData.is_active = true
+        updateData.expiration_date = expirationDate.toISOString()
+        updateData.approval_date = new Date().toISOString()
+      }
+
+      // Update status
       const { data, error } = await supabase
         .from('project_requests')
-        .update({ status: 'restoration_requested' })
+        .update(updateData)
         .eq('id', requestId)
         .select()
         .single()
@@ -813,13 +937,40 @@ async function handleRoute(request, { params }) {
         ))
       }
 
-      // Send restoration request email
-      await sendRestorationRequestEmail(
-        currentData.email,
-        currentData.project_name
-      )
+      // Send appropriate email based on review type and result
+      try {
+        if (body.review_type === 'ai' && reviewResult) {
+          // Send AI review result email with review data
+          if (reviewResult.approved) {
+            await sendRestorationApprovedEmail(
+              currentData.email,
+              currentData.project_name,
+              reviewResult.review
+            )
+          } else {
+            await sendRestorationRejectedEmail(
+              currentData.email,
+              currentData.project_name,
+              reviewResult.review
+            )
+          }
+        } else {
+          // Send team review request email
+          await sendRestorationRequestEmail(
+            currentData.email,
+            currentData.project_name,
+            body.review_type
+          )
+        }
+      } catch (emailError) {
+        console.error('Email error:', emailError)
+        // Don't fail the request if email fails
+      }
 
-      return handleCORS(NextResponse.json(data))
+      return handleCORS(NextResponse.json({
+        ...data,
+        review_result: reviewResult
+      }))
     }
 
     // Approve restoration - POST /api/project-requests/:id/approve-restoration
@@ -924,6 +1075,57 @@ async function handleRoute(request, { params }) {
       )
 
       return handleCORS(NextResponse.json(data))
+    }
+
+    // Get restoration review - GET /api/restoration-reviews/:project_id
+    const getReviewMatch = route.match(/^\/restoration-reviews\/(.+)$/)
+    if (getReviewMatch && method === 'GET') {
+      const projectId = getReviewMatch[1]
+      
+      try {
+        const review = await db.collection('restoration_reviews')
+          .findOne({ project_id: projectId }, { sort: { reviewed_at: -1 } })
+        
+        if (!review) {
+          return handleCORS(NextResponse.json(
+            { error: "Keine Prüfung gefunden" }, 
+            { status: 404 }
+          ))
+        }
+
+        // Remove MongoDB _id field
+        const { _id, ...cleanReview } = review
+        
+        return handleCORS(NextResponse.json(cleanReview))
+      } catch (error) {
+        console.error('MongoDB fetch error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Laden der Prüfung" }, 
+          { status: 500 }
+        ))
+      }
+    }
+
+    // Get all restoration reviews - GET /api/restoration-reviews (Admin only)
+    if (route === '/restoration-reviews' && method === 'GET') {
+      try {
+        const reviews = await db.collection('restoration_reviews')
+          .find({})
+          .sort({ reviewed_at: -1 })
+          .limit(100)
+          .toArray()
+        
+        // Remove MongoDB _id field from all reviews
+        const cleanReviews = reviews.map(({ _id, ...rest }) => rest)
+        
+        return handleCORS(NextResponse.json(cleanReviews))
+      } catch (error) {
+        console.error('MongoDB fetch error:', error)
+        return handleCORS(NextResponse.json(
+          { error: "Fehler beim Laden der Prüfungen" }, 
+          { status: 500 }
+        ))
+      }
     }
 
     // Extend project - POST /api/project-requests/:id/extend
