@@ -38,6 +38,18 @@ export default function MeineProjektePage() {
     }
   }, [user])
 
+  // Load review data for projects that might have AI reviews
+  useEffect(() => {
+    if (projects.length > 0) {
+      projects.forEach(project => {
+        // Try to load review data for projects that might have been through restoration
+        if ((project.status === 'approved' || project.status === 'removed') && !reviewData[project.id]) {
+          loadReviewData(project.id)
+        }
+      })
+    }
+  }, [projects])
+
   const loadMyProjects = async () => {
     setLoading(true)
     setError('')
@@ -170,6 +182,11 @@ export default function MeineProjektePage() {
     } catch (err) {
       console.error('Error loading review data:', err)
     }
+  }
+
+  const hasAIReview = (projectId) => {
+    // Check if this project has an AI review in the reviewData
+    return reviewData[projectId] && reviewData[projectId].review_type === 'ai'
   }
 
   const toggleReviewDetails = (projectId) => {
@@ -801,8 +818,8 @@ export default function MeineProjektePage() {
                             </div>
                           </div>
 
-                          {/* AI Review Details - Show if project has restoration_review_type */}
-                          {project.restoration_review_type === 'ai' && (
+                          {/* AI Review Details - Show if project has AI review data */}
+                          {reviewData[project.id]?.review_type === 'ai' && (
                             <div className="p-5 bg-purple-500/5 rounded-lg border border-purple-500/20">
                               <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
