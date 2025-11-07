@@ -2,6 +2,7 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { CookieProvider } from '@/contexts/CookieContext'
 import CookieBanner from '@/components/CookieBanner'
+import BackgroundProcessor from '@/components/BackgroundProcessor'
 
 export const metadata = {
   title: 'EHE Community Webseite Studio',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             {children}
             <CookieBanner />
+            <BackgroundProcessor />
           </AuthProvider>
         </CookieProvider>
       </body>
