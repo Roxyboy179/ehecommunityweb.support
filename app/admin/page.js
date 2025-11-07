@@ -45,7 +45,12 @@ export default function AdminPage() {
 
     // Apply tab filter
     if (activeTab !== 'all') {
-      filtered = filtered.filter(req => req.status === activeTab)
+      if (activeTab === 'in_progress') {
+        // Handle both "in_progress" and "In Bearbeitung" for backwards compatibility
+        filtered = filtered.filter(req => req.status === 'in_progress' || req.status === 'In Bearbeitung')
+      } else {
+        filtered = filtered.filter(req => req.status === activeTab)
+      }
     }
 
     // Apply search filter
@@ -75,7 +80,7 @@ export default function AdminPage() {
     return {
       total: requests.length,
       pending: requests.filter(r => r.status === 'pending').length,
-      inProgress: requests.filter(r => r.status === 'In Bearbeitung').length,
+      inProgress: requests.filter(r => r.status === 'In Bearbeitung' || r.status === 'in_progress').length,
       approved: requests.filter(r => r.status === 'approved').length,
       rejected: requests.filter(r => r.status === 'Abgelehnt').length,
       removed: requests.filter(r => r.status === 'removed').length,
@@ -254,6 +259,7 @@ export default function AdminPage() {
     switch (status) {
       case 'pending':
         return <Clock className="w-4 h-4" />
+      case 'in_progress':
       case 'In Bearbeitung':
         return <RefreshCw className="w-4 h-4" />
       case 'approved':
@@ -275,6 +281,7 @@ export default function AdminPage() {
     switch (status) {
       case 'pending':
         return 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+      case 'in_progress':
       case 'In Bearbeitung':
         return 'bg-sky-500/10 text-sky-400 border-sky-500/20'
       case 'approved':
@@ -296,6 +303,7 @@ export default function AdminPage() {
     switch (status) {
       case 'pending':
         return 'Ausstehend'
+      case 'in_progress':
       case 'In Bearbeitung':
         return 'In Bearbeitung'
       case 'approved':
@@ -316,7 +324,7 @@ export default function AdminPage() {
   const tabs = [
     { id: 'all', label: 'Alle', count: statistics.total },
     { id: 'pending', label: 'Ausstehend', count: statistics.pending },
-    { id: 'In Bearbeitung', label: 'In Bearbeitung', count: statistics.inProgress },
+    { id: 'in_progress', label: 'In Bearbeitung', count: statistics.inProgress },
     { id: 'approved', label: 'Angenommen', count: statistics.approved },
     { id: 'Abgelehnt', label: 'Abgelehnt', count: statistics.rejected },
     { id: 'restoration_requested', label: 'Wiederherstellung', count: statistics.restorationRequested },
